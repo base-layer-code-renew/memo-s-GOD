@@ -1,0 +1,805 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>ULTIMATE MEMO - 統合管理ツール</title>
+    <style>
+        :root { 
+            --bg: #1e1e1e;
+            --panel: #2d2d2d; 
+            --accent: #00ff88; 
+            --delete-accent: #ff4444;
+            --cac-accent: #a855f7; /* CAC機能のテーマカラー */
+            --text: #e0e0e0; 
+        }
+        body { 
+            margin: 0;
+            background: var(--bg); 
+            color: var(--text); 
+            font-family: 'Segoe UI', sans-serif; 
+            display: flex; 
+            flex-direction: column; 
+            height: 100vh; 
+            overflow: hidden;
+            -webkit-user-select: none;
+            user-select: none;
+        }
+        
+        /* タブエリア */
+        .tabs-bar { 
+            background: #111; display: flex; align-items: center; 
+            padding: 5px 10px 0; gap: 5px; border-bottom: 1px solid #444;
+        }
+        .tab { 
+            padding: 8px 15px; background: #333; color: #888;
+            border-radius: 5px 5px 0 0; cursor: pointer; font-size: 12px; 
+            display: flex; align-items: center; gap: 8px;
+        }
+        .tab.active { 
+            background: var(--panel); color: var(--accent); 
+            border: 1px solid #444; border-bottom: none;
+        }
+        .btn-add-tab { background: none; border: none; color: #fff; font-size: 20px; cursor: pointer; padding: 0 10px; }
+        .btn-close-tab { font-size: 10px; color: #888; border: none; background: none; cursor: pointer; }
+        .btn-close-tab:hover { color: #ff4444; }
+
+        .container { display: flex; flex-grow: 1; overflow: hidden; }
+        
+        /* サイドバー */
+        .sidebar { 
+            width: 380px; /* 少し拡張 */
+            background: var(--panel); border-right: 1px solid #444; 
+            display: flex; flex-direction: column; padding: 15px 20px; overflow-y: auto;
+        }
+        h2 { font-size: 16px; margin: 0 0 15px 0; border-left: 4px solid var(--accent); padding-left: 10px; }
+        .section-title { font-size: 11px; color: #888; margin: 15px 0 8px; text-transform: uppercase; letter-spacing: 1px; }
+        
+        /* Smart Input Group (単語/文章切替用) */
+        .smart-input-group { background: #1a1a1a; border: 1px solid #444; border-radius: 4px; padding: 6px; margin-bottom: 5px; }
+        .smart-input-group:focus-within { border-color: var(--accent); }
+        .smart-input-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; }
+        .smart-input-label { font-size: 10px; color: #aaa; font-weight: bold; }
+        .mode-switch { display: flex; gap: 2px; }
+        .btn-mode { background: #333; color: #888; font-size: 9px; padding: 3px 8px; border-radius: 2px; border: none; cursor: pointer; }
+        .btn-mode.active { background: #555; color: #fff; }
+        .smart-input-body input, .smart-input-body textarea {
+            width: 100%; box-sizing: border-box; background: #0a0a0a; color: #fff; 
+            border: 1px solid #333; border-radius: 3px; padding: 8px; font-size: 13px;
+            -webkit-user-select: text !important; user-select: text !important; display: none;
+            font-family: inherit;
+        }
+        .smart-input-body input:focus, .smart-input-body textarea:focus { outline: none; border-color: #666; }
+        .smart-input-body .active { display: block; }
+        .smart-input-body textarea { resize: vertical; min-height: 50px; max-height: 150px; }
+
+        /* ナビゲーション UI (探す・CAC) */
+        .nav-ui { display: flex; align-items: center; gap: 5px; font-size: 11px; margin-bottom: 10px; justify-content: flex-end; padding: 0 2px; }
+        .nav-ui.left-align { justify-content: space-between; }
+        .nav-btn { background: #444; color: #fff; border: none; padding: 4px 10px; border-radius: 3px; font-size: 11px; cursor: pointer; }
+        .nav-btn:hover { background: #666; }
+        .count-disp { min-width: 40px; text-align: center; display: inline-block; color: var(--accent); font-weight: bold; }
+        .check-label { display: flex; align-items: center; gap: 5px; color: #ddd; cursor: pointer; }
+
+        .checkbox-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; background: #222; padding: 10px; border-radius: 4px; }
+        .checkbox-grid label { display: flex; align-items: center; color: #ddd; font-size: 12px; cursor: pointer; }
+        
+        button { cursor: pointer; border: none; border-radius: 4px; font-weight: bold; transition: 0.2s; }
+        .btn-exe { width: 100%; padding: 10px; color: #fff; margin: 5px 0 10px; font-size: 13px; }
+        .del-theme { background: var(--delete-accent); }
+        .rep-theme { background: var(--accent); color: #000; }
+        .cac-theme { background: var(--cac-accent); color: #fff; }
+        button:hover { opacity: 0.8; }
+        
+        .undo-redo-group { display: flex; gap: 5px; margin-bottom: 10px; }
+        .btn-ctrl { flex: 1; padding: 8px; background: #444; color: #fff; font-size: 12px; }
+        .btn-ctrl:disabled { opacity: 0.2; }
+
+        .history-area { 
+            flex-shrink: 0; overflow-y: auto; background: #111; border-radius: 4px; 
+            padding: 10px; font-size: 11px; min-height: 80px; max-height: 120px;
+            border: 1px solid #333; margin-bottom: 10px;
+        }
+        .history-item { border-bottom: 1px solid #222; padding: 5px 0; color: #aaa; }
+
+        /* メインエリア・エディタ */
+        .main { flex-grow: 1; display: flex; flex-direction: column; padding: 20px; gap: 10px; position: relative; }
+        .toolbar { display: flex; gap: 10px; }
+        
+        /* ワークスペース（ハイライトのバックドロップとエディタを重ねる場所） */
+        .workspace {
+            flex-grow: 1; display: flex; position: relative; overflow: hidden; border-radius: 4px;
+            background: #111; border: 1px solid #444; 
+        }
+        .workspace:focus-within { border-color: var(--accent); }
+        
+        .backdrop {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            z-index: 1; pointer-events: none; overflow: hidden;
+            background: #111;
+        }
+        .highlights {
+            font-family: 'Consolas', monospace; font-size: 16px; line-height: 1.6; padding: 15px; 
+            box-sizing: border-box; white-space: pre-wrap; word-wrap: break-word;
+            color: transparent; min-height: 100%;
+        }
+        
+        /* ハイライト用のスタイル */
+        .backdrop-text { color: #444; } /* 検索時の非マッチ文字（暗く） */
+        mark.match { background-color: rgba(255, 255, 0, 0.3); color: #fff; border-radius: 2px; }
+        mark.active { background-color: rgba(255, 140, 0, 0.9); color: #fff; box-shadow: 0 0 4px rgba(255,140,0,0.8); border-radius: 2px; }
+
+        textarea#editor { 
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%; box-sizing: border-box;
+            background: transparent !important; z-index: 2; 
+            color: #d4d4d4; font-family: 'Consolas', monospace; font-size: 16px !important; line-height: 1.6; padding: 15px; 
+            border: none; resize: none; transition: color 0.1s;
+            -webkit-user-select: text !important; user-select: text !important;
+            -webkit-tap-highlight-color: transparent; touch-action: manipulation; outline: none;
+        }
+        textarea#editor.highlight-mode {
+            color: transparent !important; /* テキストを透明にして背後のハイライトを見せる */
+            caret-color: #fff;
+        }
+        
+        .footer { display: flex; gap: 10px; align-items: center; }
+        .btn-secondary { background: #444; color: #fff; padding: 8px 15px; font-size: 12px; }
+        .btn-primary { background: #007bff; color: #fff; padding: 8px 15px; font-size: 12px; }
+        .status-bar { font-size: 10px; color: #666; text-align: right; }
+        .restore-btn { background: #555; color: #fff; font-size: 9px; padding: 2px 5px; border-radius: 3px; float: right; }
+        .restore-btn:hover { background: var(--accent); color: #000; }
+
+        #preview-container {
+            display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; 
+            background: #fff; z-index: 50; flex-direction: column;
+        }
+        #preview-container.fullscreen {
+            position: fixed !important; top: 0; left: 0; width: 100vw !important; height: 100vh !important;
+            z-index: 99999 !important; border-radius: 0; margin: 0; padding: 0;
+        }
+        .preview-controls { position: absolute; top: 10px; right: 20px; z-index: 60; display: flex; gap: 10px; }
+        .preview-controls button { box-shadow: 0 2px 5px rgba(0,0,0,0.5); font-size: 12px; }
+        iframe { -webkit-overflow-scrolling: touch; overflow-y: scroll; }
+
+    </style>
+</head>
+<body>
+
+<div class="tabs-bar" id="tabs-bar">
+    <button class="btn-add-tab" onclick="createNewMemo()">+</button>
+</div>
+
+<div class="container">
+    <div class="sidebar">
+        <h2>TOOLS</h2>
+        <div class="undo-redo-group">
+            <button id="undo-btn" class="btn-ctrl" onclick="undo()">↩ 戻る</button>
+            <button id="redo-btn" class="btn-ctrl" onclick="redo()">↪ 進む</button>
+        </div>
+
+        <!-- ★追加: 探す (SEARCH) -->
+        <div class="section-title">探す (SEARCH)</div>
+        <div id="search-container"></div>
+        <div class="nav-ui">
+            <span class="count-disp" id="search-count">0/0</span>
+            <button class="nav-btn" onclick="navIndex(-1, 'search')">▲ 前へ</button>
+            <button class="nav-btn" onclick="navIndex(1, 'search')">▼ 次へ</button>
+        </div>
+
+        <!-- ★追加: CAC (CUT & COPY) -->
+        <div class="section-title">CAC (CUT & COPY)</div>
+        <div id="cac-start-container"></div>
+        <div class="nav-ui left-align">
+            <label class="check-label"><input type="checkbox" id="cac-start-include" checked> 含む</label>
+            <div>
+                <span class="count-disp" id="cac-start-count">0/0</span>
+                <button class="nav-btn" onclick="navIndex(-1, 'cac-start')">▲</button>
+                <button class="nav-btn" onclick="navIndex(1, 'cac-start')">▼</button>
+            </div>
+        </div>
+        <div id="cac-end-container"></div>
+        <div class="nav-ui left-align">
+            <label class="check-label"><input type="checkbox" id="cac-end-include" checked> 含む</label>
+            <div>
+                <span class="count-disp" id="cac-end-count">0/0</span>
+                <button class="nav-btn" onclick="navIndex(-1, 'cac-end')">▲</button>
+                <button class="nav-btn" onclick="navIndex(1, 'cac-end')">▼</button>
+            </div>
+        </div>
+        <button class="btn-exe cac-theme" onclick="runCAC()">CAC 実行 (切取＆コピー)</button>
+
+        <!-- ★変更: 一括置換 (Smart Input対応) -->
+        <div class="section-title">一括置換 (REWRITE)</div>
+        <div id="replace-find-container"></div>
+        <div id="replace-to-container"></div>
+        <button class="btn-exe rep-theme" onclick="runReplace()">置換 ＆ 記録</button>
+
+        <!-- ★変更: 単語消去 (Smart Input対応) -->
+        <div class="section-title">文字列消去 (DELETE)</div>
+        <div id="del-container-1"></div>
+        <div id="del-container-2"></div>
+
+        <div class="section-title">タイプ別消去</div>
+        <div class="checkbox-grid">
+            <label><input type="checkbox" value="num"> 数字</label>
+            <label><input type="checkbox" value="sym"> 記号</label>
+            <label><input type="checkbox" value="roma"> ローマ字</label>
+            <label><input type="checkbox" value="jp"> 日本語</label>
+            <label><input type="checkbox" value="kan"> 漢字</label>
+            <label><input type="checkbox" value="hira"> ひらがな</label>
+        </div>
+        <button class="btn-exe del-theme" onclick="runDelete()">消去実行 ＆ 記録</button>
+
+        <div class="section-title">操作履歴</div>
+        <div id="history" class="history-area"><div style="color:#555">履歴はありません</div></div>
+
+        <div class="section-title">削除済みメモ (最大10件)</div>
+        <div id="deleted-memos" class="history-area"><div style="color:#555">削除履歴はありません</div></div>
+    </div>
+
+    <div class="main">
+        <div class="toolbar">
+            <input type="file" id="load-file" style="display:none" onchange="loadFile(event)">
+            <button class="btn-secondary" onclick="document.getElementById('load-file').click()">読込</button>
+            <input type="text" id="memo-title" placeholder="メモのタイトル" style="flex-grow:1; max-width: 300px; background: #222; border: 1px solid #444; color: #fff; padding: 5px 10px; border-radius: 4px;" oninput="updateTabTitle()">
+        </div>
+
+        <div class="workspace">
+            <div class="backdrop" id="backdrop">
+                <div class="highlights" id="highlights"></div>
+            </div>
+            <!-- エディタフォーカス時はハイライトを解除して通常編集に戻す -->
+            <textarea id="editor" placeholder="ここにテキストを入力してください..." oninput="onEditorInput()" onfocus="setHighlightContext(null)"></textarea>
+            
+            <div id="preview-container">
+                <div class="preview-controls">
+                    <button class="btn-secondary" onclick="togglePreviewFullscreen()">全画面切替</button>
+                    <button class="del-theme" style="padding: 8px 15px; color: #fff; border: none;" onclick="endTest()">■ 終了</button>
+                </div>
+                <iframe id="preview" style="width: 100%; height: 100%; border: none; background: #fff;"></iframe>
+            </div>
+        </div>
+        
+        <div class="footer">
+            <button class="btn-primary" onclick="download('text')">テキスト保存</button>
+            <button class="btn-secondary" onclick="download('memo')">履歴保存</button>
+            <button class="rep-theme" style="padding: 8px 15px; font-size: 12px; margin-left: 10px;" onclick="runHTML()">▶ コード実行</button>
+            <div style="flex-grow:1"></div>
+            <div id="save-status" class="status-bar">保存済み</div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // ==========================================
+    // UI コンポーネント生成 (Smart Input)
+    // ==========================================
+    function renderSmartInputs() {
+        const create = (id, label, ph) => `
+        <div class="smart-input-group" id="${id}" onfocusin="handleFocusIn('${id}')">
+            <div class="smart-input-header">
+                <span class="smart-input-label">${label}</span>
+                <div class="mode-switch">
+                    <button type="button" class="btn-mode word active" onclick="switchInputMode('${id}', 'word')">単語</button>
+                    <button type="button" class="btn-mode text" onclick="switchInputMode('${id}', 'text')">文章</button>
+                </div>
+            </div>
+            <div class="smart-input-body">
+                <input type="text" class="smart-input input-word active" placeholder="${ph}" oninput="handleSmartInput('${id}')">
+                <textarea class="smart-input input-text" placeholder="${ph} (改行可)" oninput="handleSmartInput('${id}')"></textarea>
+            </div>
+        </div>`;
+
+        document.getElementById('search-container').innerHTML = create('search-in', '検索する文字', '探す文字列');
+        document.getElementById('cac-start-container').innerHTML = create('cac-start-in', '始まりの文字', '開始地点');
+        document.getElementById('cac-end-container').innerHTML = create('cac-end-in', '終わりの文字', '終了地点');
+        document.getElementById('replace-find-container').innerHTML = create('replace-find-in', '探す文字', '探す文字列');
+        document.getElementById('replace-to-container').innerHTML = create('replace-to-in', '変える文字', '変える文字列');
+        document.getElementById('del-container-1').innerHTML = create('del-in-1', '消す文字 1', '消去する文字列');
+        document.getElementById('del-container-2').innerHTML = create('del-in-2', '消す文字 2', '消去する文字列');
+    }
+
+    // Smart Input 操作ヘルパー
+    function getInputValue(id) {
+        const group = document.getElementById(id);
+        if (!group) return "";
+        const isWord = group.querySelector('.btn-mode.word').classList.contains('active');
+        return isWord ? group.querySelector('.input-word').value : group.querySelector('.input-text').value;
+    }
+    function setInputValue(id, val) {
+        const group = document.getElementById(id);
+        if (!group) return;
+        group.querySelector('.input-word').value = val;
+        group.querySelector('.input-text').value = val;
+    }
+    function switchInputMode(id, mode) {
+        const group = document.getElementById(id);
+        group.querySelectorAll('.btn-mode').forEach(b => b.classList.remove('active'));
+        group.querySelector(`.btn-mode.${mode}`).classList.add('active');
+        group.querySelectorAll('.smart-input').forEach(i => i.classList.remove('active'));
+        const targetInput = group.querySelector(`.input-${mode}`);
+        targetInput.classList.add('active');
+        
+        const otherMode = mode === 'word' ? 'text' : 'word';
+        targetInput.value = group.querySelector(`.input-${otherMode}`).value;
+        targetInput.focus();
+    }
+    function handleSmartInput(id) {
+        const group = document.getElementById(id);
+        const isWord = group.querySelector('.btn-mode.word').classList.contains('active');
+        const val = isWord ? group.querySelector('.input-word').value : group.querySelector('.input-text').value;
+        if (isWord) group.querySelector('.input-text').value = val;
+        else group.querySelector('.input-word').value = val;
+        
+        if (id === 'search-in') { searchActiveIdx = 0; setHighlightContext('search'); }
+        else if (id === 'cac-start-in') { cacStartActiveIdx = 0; setHighlightContext('cac-start'); }
+        else if (id === 'cac-end-in') { cacEndActiveIdx = 0; setHighlightContext('cac-end'); }
+    }
+
+    // ==========================================
+    // ハイライト・ナビゲーション・コンテキスト管理
+    // ==========================================
+    let hlContext = null; // 'search', 'cac-start', 'cac-end', null
+    let searchActiveIdx = 0;
+    let cacStartActiveIdx = 0;
+    let cacEndActiveIdx = 0;
+
+    function handleFocusIn(id) {
+        if (id === 'search-in') setHighlightContext('search');
+        else if (id === 'cac-start-in') setHighlightContext('cac-start');
+        else if (id === 'cac-end-in') setHighlightContext('cac-end');
+        else setHighlightContext(null);
+    }
+
+    function setHighlightContext(ctx) {
+        hlContext = ctx;
+        updateHighlight();
+    }
+
+    function getMatches(text, keyword) {
+        if (!keyword) return [];
+        let matches = [];
+        let lowerText = text.toLowerCase();
+        let lowerKeyword = keyword.toLowerCase();
+        let index = 0;
+        while ((index = lowerText.indexOf(lowerKeyword, index)) !== -1) {
+            matches.push({ start: index, end: index + keyword.length });
+            index += keyword.length; 
+        }
+        return matches;
+    }
+
+    function escapeHtml(str) {
+        return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+    }
+
+    function updateHighlight() {
+        const editor = document.getElementById('editor');
+        const highlights = document.getElementById('highlights');
+        let text = editor.value;
+        
+        updateHighlightUI(text);
+
+        if (!hlContext) {
+            editor.classList.remove('highlight-mode');
+            highlights.innerHTML = escapeHtml(text);
+            return;
+        }
+        
+        let keyword = "";
+        let activeIdx = 0;
+        if (hlContext === 'search') { keyword = getInputValue('search-in'); activeIdx = searchActiveIdx; }
+        else if (hlContext === 'cac-start') { keyword = getInputValue('cac-start-in'); activeIdx = cacStartActiveIdx; }
+        else if (hlContext === 'cac-end') { keyword = getInputValue('cac-end-in'); activeIdx = cacEndActiveIdx; }
+        
+        if (!keyword) {
+            editor.classList.remove('highlight-mode');
+            highlights.innerHTML = escapeHtml(text);
+            return;
+        }
+
+        editor.classList.add('highlight-mode');
+        let matches = getMatches(text, keyword);
+        
+        if (matches.length === 0) {
+            highlights.innerHTML = `<span class="backdrop-text">${escapeHtml(text)}</span>`;
+            return;
+        }
+        
+        // 範囲外アクセス補正
+        if (activeIdx >= matches.length) activeIdx = matches.length - 1;
+        if (activeIdx < 0) activeIdx = 0;
+        
+        // ハイライトHTML構築
+        let resultHTML = "";
+        let lastIndex = 0;
+        matches.forEach((match, i) => {
+            resultHTML += `<span class="backdrop-text">${escapeHtml(text.substring(lastIndex, match.start))}</span>`;
+            let matchText = escapeHtml(text.substring(match.start, match.end));
+            let markClass = (i === activeIdx) ? 'active' : 'match';
+            resultHTML += `<mark class="${markClass}">${matchText}</mark>`;
+            lastIndex = match.end;
+        });
+        resultHTML += `<span class="backdrop-text">${escapeHtml(text.substring(lastIndex))}</span>`;
+        
+        highlights.innerHTML = resultHTML;
+        scrollToActiveMatch();
+    }
+
+    function updateHighlightUI(text) {
+        const updateDisp = (id, keyword, idx) => {
+            let m = getMatches(text, keyword);
+            let disp = document.getElementById(id);
+            if(disp) disp.innerText = m.length > 0 ? `${idx + 1}/${m.length}` : `0/0`;
+        };
+        updateDisp('search-count', getInputValue('search-in'), searchActiveIdx);
+        updateDisp('cac-start-count', getInputValue('cac-start-in'), cacStartActiveIdx);
+        updateDisp('cac-end-count', getInputValue('cac-end-in'), cacEndActiveIdx);
+    }
+
+    function navIndex(dir, type) {
+        const text = document.getElementById('editor').value;
+        let keyword = "";
+        let curr = 0;
+        
+        if (type === 'search') { keyword = getInputValue('search-in'); curr = searchActiveIdx; }
+        else if (type === 'cac-start') { keyword = getInputValue('cac-start-in'); curr = cacStartActiveIdx; }
+        else if (type === 'cac-end') { keyword = getInputValue('cac-end-in'); curr = cacEndActiveIdx; }
+        
+        if (!keyword) return;
+        let matches = getMatches(text, keyword);
+        if (matches.length === 0) return;
+        
+        curr += dir;
+        if (curr < 0) curr = matches.length - 1;
+        if (curr >= matches.length) curr = 0;
+        
+        if (type === 'search') { searchActiveIdx = curr; setHighlightContext('search'); }
+        else if (type === 'cac-start') { cacStartActiveIdx = curr; setHighlightContext('cac-start'); }
+        else if (type === 'cac-end') { cacEndActiveIdx = curr; setHighlightContext('cac-end'); }
+    }
+
+    // スクロール同期
+    const editorEl = document.getElementById('editor');
+    const backdropEl = document.getElementById('backdrop');
+    const highlightsEl = document.getElementById('highlights');
+
+    editorEl.addEventListener('scroll', () => {
+        backdropEl.scrollTop = editorEl.scrollTop;
+        backdropEl.scrollLeft = editorEl.scrollLeft;
+    });
+
+    function scrollToActiveMatch() {
+        const activeMark = highlightsEl.querySelector('mark.active');
+        if (activeMark) {
+            const markTop = activeMark.offsetTop;
+            const markBottom = markTop + activeMark.offsetHeight;
+            const eTop = editorEl.scrollTop;
+            const eHeight = editorEl.clientHeight;
+            if (markTop < eTop + 20) {
+                editorEl.scrollTop = markTop - 20;
+            } else if (markBottom > eTop + eHeight - 20) {
+                editorEl.scrollTop = markBottom - eHeight + 20;
+            }
+        }
+    }
+
+    function onEditorInput() {
+        autoSave();
+        updateHighlight();
+    }
+
+    // ==========================================
+    // CAC 機能実行ロジック
+    // ==========================================
+    function copyToClipboard(text) {
+        const ta = document.createElement('textarea');
+        ta.value = text; ta.style.position = 'fixed'; ta.style.left = '-9999px';
+        document.body.appendChild(ta); ta.select();
+        try { document.execCommand('copy'); } catch (err) { console.error(err); }
+        document.body.removeChild(ta);
+    }
+
+    function runCAC() {
+        let content = document.getElementById('editor').value;
+        let startStr = getInputValue('cac-start-in');
+        let endStr = getInputValue('cac-end-in');
+        
+        if (!startStr || !endStr) return alert("CACエラー：開始と終了の文字列を両方入力してください。");
+        
+        let sMatches = getMatches(content, startStr);
+        let eMatches = getMatches(content, endStr);
+        if (sMatches.length === 0) return alert("CACエラー：開始文字列が見つかりません。");
+        if (eMatches.length === 0) return alert("CACエラー：終了文字列が見つかりません。");
+        
+        let sIdx = cacStartActiveIdx < sMatches.length ? cacStartActiveIdx : 0;
+        let eIdx = cacEndActiveIdx < eMatches.length ? cacEndActiveIdx : 0;
+        
+        let startMatch = sMatches[sIdx];
+        let endMatch = eMatches[eIdx];
+        
+        let startInclude = document.getElementById('cac-start-include').checked;
+        let endInclude = document.getElementById('cac-end-include').checked;
+        
+        let cutStartPos = startInclude ? startMatch.start : startMatch.end;
+        let cutEndPos = endInclude ? endMatch.end : endMatch.start;
+        
+        if (cutStartPos >= cutEndPos) {
+            return alert("CACエラー：終了位置が開始位置より前、または同じ位置にあります。\n（「次へ」ボタンで別の候補を選択するか、条件を見直してください）");
+        }
+        
+        saveState();
+        let targetText = content.substring(cutStartPos, cutEndPos);
+        let newContent = content.substring(0, cutStartPos) + content.substring(cutEndPos);
+        
+        copyToClipboard(targetText);
+        applyChanges(newContent, `CAC: 切取コピー (${targetText.length}文字)`);
+        setHighlightContext(null); // 完了後はハイライト解除
+        
+        alert("CAC完了：指定範囲を切り取り、クリップボードにコピーしました。");
+    }
+
+    // ==========================================
+    // 既存機能・状態管理
+    // ==========================================
+    let memos = []; 
+    let activeMemoId = null;
+    let deletedMemos = [];
+
+    const patterns = {
+        num: { regex: /[0-9０-９]/g, label: "数字" },
+        sym: { regex: /[\x21-\x2f\x3a-\x40\x5b-\x60\x7b-\x7e]|[！-／：-＠［-｀｛-｝]|[\u2000-\u206F\u2500-\u257F\u25A0-\u25FF\u2190-\u21FF\u2200-\u22FF\u2600-\u26FF\u3000-\u303F]/g, label: "記号" },
+        roma: { regex: /[a-zA-Z]/g, label: "ローマ字" },
+        jp: { regex: /[ぁ-んァ-ヶー一-龠]/g, label: "日本語" },
+        kan: { regex: /[一-龠]/g, label: "漢字" },
+        hira: { regex: /[ぁ-ん]/g, label: "ひらがな" }
+    };
+
+    window.onload = () => {
+        renderSmartInputs(); // UI初期化
+        const saved = localStorage.getItem('ultimate_memo_data_v2');
+        if (saved) {
+            memos = JSON.parse(saved);
+            activeMemoId = memos[0].id;
+        } else {
+            createNewMemo();
+        }
+        const savedDeleted = localStorage.getItem('ultimate_memo_deleted_v2');
+        if (savedDeleted) deletedMemos = JSON.parse(savedDeleted);
+
+        renderTabs();
+        loadActiveMemo();
+        updateDeletedUI();
+        setupEditorEnhancements();
+    };
+
+    function createNewMemo() {
+        const id = Date.now();
+        const newMemo = { id: id, title: "新規メモ", content: "", history: [], undoStack: [], redoStack: [] };
+        memos.push(newMemo); activeMemoId = id;
+        renderTabs(); loadActiveMemo(); autoSave();
+    }
+
+    function loadActiveMemo() {
+        const memo = memos.find(m => m.id === activeMemoId);
+        if (!memo) return;
+        document.getElementById('editor').value = memo.content;
+        document.getElementById('memo-title').value = memo.title;
+        updateHistoryUI(); updateCtrlButtons();
+        setHighlightContext(null); // メモ切替時はハイライト解除
+        if (document.getElementById('preview-container').style.display === 'flex') endTest();
+    }
+
+    function renderTabs() {
+        const bar = document.getElementById('tabs-bar');
+        const addButton = bar.querySelector('.btn-add-tab');
+        bar.querySelectorAll('.tab').forEach(t => t.remove());
+
+        memos.forEach(memo => {
+            const tab = document.createElement('div');
+            tab.className = `tab ${memo.id === activeMemoId ? 'active' : ''}`;
+            tab.onclick = () => switchMemo(memo.id);
+            tab.innerHTML = `<span>${memo.title || '無題'}</span><button class="btn-close-tab" onclick="closeTab(event, ${memo.id})">×</button>`;
+            bar.insertBefore(tab, addButton);
+        });
+    }
+
+    function switchMemo(id) { activeMemoId = id; renderTabs(); loadActiveMemo(); }
+
+    function closeTab(e, id) {
+        e.stopPropagation();
+        if (memos.length === 1) return;
+        const targetIndex = memos.findIndex(m => m.id === id);
+        if (targetIndex !== -1) {
+            const deleted = memos.splice(targetIndex, 1)[0];
+            deletedMemos.unshift(deleted);
+            if (deletedMemos.length > 10) deletedMemos.pop();
+            saveDeletedStates(); updateDeletedUI();
+        }
+        if (activeMemoId === id) activeMemoId = memos[0].id;
+        renderTabs(); loadActiveMemo(); autoSave();
+    }
+
+    function updateTabTitle() {
+        const memo = memos.find(m => m.id === activeMemoId);
+        if (memo) { memo.title = document.getElementById('memo-title').value; renderTabs(); autoSave(); }
+    }
+
+    function autoSave() {
+        const memo = memos.find(m => m.id === activeMemoId);
+        if (memo) memo.content = document.getElementById('editor').value;
+        localStorage.setItem('ultimate_memo_data_v2', JSON.stringify(memos));
+        const status = document.getElementById('save-status');
+        status.innerText = "保存中..."; setTimeout(() => { status.innerText = "保存済み"; }, 800);
+    }
+
+    function saveState() {
+        const memo = memos.find(m => m.id === activeMemoId);
+        if (!memo) return;
+        memo.undoStack.push({ content: memo.content, history: [...memo.history] });
+        memo.redoStack = []; updateCtrlButtons();
+    }
+
+    function runDelete() {
+        const memo = memos.find(m => m.id === activeMemoId);
+        let content = document.getElementById('editor').value;
+        let info = [];
+        saveState();
+
+        ['del-in-1', 'del-in-2'].forEach(id => {
+            const val = getInputValue(id);
+            if (val && content.includes(val)) {
+                content = content.split(val).join("");
+                info.push(`「${val}」`);
+                setInputValue(id, "");
+            }
+        });
+
+        document.querySelectorAll('.checkbox-grid input:checked').forEach(chk => {
+            const p = patterns[chk.value];
+            if (content.match(p.regex)) {
+                content = content.replace(p.regex, "");
+                info.push(`[${p.label}]`);
+            }
+            chk.checked = false;
+        });
+
+        if (info.length > 0) applyChanges(content, `消去: ${info.join(", ")}`);
+        else { memo.undoStack.pop(); alert("対象が見つかりません"); }
+    }
+
+    function runReplace() {
+        const findVal = getInputValue('replace-find-in');
+        const replaceVal = getInputValue('replace-to-in');
+        let content = document.getElementById('editor').value;
+
+        if (!findVal) return alert("探す単語を入力してください");
+        saveState();
+
+        const newContent = content.split(findVal).join(replaceVal);
+        if (content !== newContent) {
+            applyChanges(newContent, `置換: 「${findVal}」→「${replaceVal}」`);
+            setInputValue('replace-find-in', "");
+            setInputValue('replace-to-in', "");
+        } else {
+            const memo = memos.find(m => m.id === activeMemoId);
+            memo.undoStack.pop(); alert("見つかりませんでした");
+        }
+    }
+
+    function applyChanges(newContent, message) {
+        const memo = memos.find(m => m.id === activeMemoId);
+        const time = new Date().toLocaleTimeString();
+        memo.content = newContent;
+        memo.history.push(`[${time}] ${message}`);
+        document.getElementById('editor').value = newContent;
+        updateHistoryUI(); updateCtrlButtons(); onEditorInput();
+    }
+
+    function undo() {
+        const memo = memos.find(m => m.id === activeMemoId);
+        if (!memo || memo.undoStack.length === 0) return;
+        memo.redoStack.push({ content: memo.content, history: [...memo.history] });
+        const last = memo.undoStack.pop();
+        memo.content = last.content; memo.history = last.history;
+        loadActiveMemo(); autoSave();
+    }
+
+    function redo() {
+        const memo = memos.find(m => m.id === activeMemoId);
+        if (!memo || memo.redoStack.length === 0) return;
+        memo.undoStack.push({ content: memo.content, history: [...memo.history] });
+        const next = memo.redoStack.pop();
+        memo.content = next.content; memo.history = next.history;
+        loadActiveMemo(); autoSave();
+    }
+
+    function updateHistoryUI() {
+        const memo = memos.find(m => m.id === activeMemoId);
+        const histDiv = document.getElementById('history');
+        if (!memo || !memo.history.length) { histDiv.innerHTML = '<div style="color:#555">履歴はありません</div>'; return; }
+        histDiv.innerHTML = memo.history.map(log => `<div class="history-item">${log}</div>`).reverse().join("");
+    }
+
+    function updateCtrlButtons() {
+        const memo = memos.find(m => m.id === activeMemoId);
+        if (!memo) return;
+        document.getElementById('undo-btn').disabled = memo.undoStack.length === 0;
+        document.getElementById('redo-btn').disabled = memo.redoStack.length === 0;
+    }
+
+    function loadFile(e) {
+        const file = e.target.files[0];
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+            saveState(); document.getElementById('editor').value = ev.target.result;
+            onEditorInput();
+        };
+        reader.readAsText(file);
+    }
+
+    function download(type) {
+        const memo = memos.find(m => m.id === activeMemoId);
+        let content = type === 'text' ? memo.content : "■ 履歴\n" + memo.history.join("\n");
+        let name = type === 'text' ? `${memo.title}.txt` : "history.txt";
+        const blob = new Blob([content], { type: 'text/plain' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob); a.download = name; a.click();
+    }
+
+    function restoreMemo(id) {
+        const index = deletedMemos.findIndex(m => m.id === id);
+        if (index !== -1) {
+            const restored = deletedMemos.splice(index, 1)[0];
+            memos.push(restored); activeMemoId = restored.id;
+            saveDeletedStates(); updateDeletedUI(); renderTabs(); loadActiveMemo(); autoSave();
+        }
+    }
+
+    function updateDeletedUI() {
+        const container = document.getElementById('deleted-memos');
+        if (deletedMemos.length === 0) { container.innerHTML = '<div style="color:#555">削除履歴はありません</div>'; return; }
+        container.innerHTML = deletedMemos.map(memo => `
+            <div class="history-item"><button class="restore-btn" onclick="restoreMemo(${memo.id})">復元</button>
+            <div style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${memo.title || '無題'}</div></div>
+        `).join("");
+    }
+
+    function saveDeletedStates() { localStorage.setItem('ultimate_memo_deleted_v2', JSON.stringify(deletedMemos)); }
+
+    function runHTML() {
+        const code = document.getElementById('editor').value;
+        const blob = new Blob([code], { type: 'text/html' });
+        document.getElementById('preview').src = URL.createObjectURL(blob);
+        document.getElementById('editor').style.display = 'none';
+        document.getElementById('backdrop').style.display = 'none';
+        document.getElementById('preview-container').style.display = 'flex';
+    }
+
+    function endTest() {
+        document.getElementById('preview').src = 'about:blank';
+        document.getElementById('preview-container').style.display = 'none';
+        document.getElementById('editor').style.display = 'block';
+        document.getElementById('backdrop').style.display = 'block';
+        if (document.getElementById('preview-container').classList.contains('fullscreen')) togglePreviewFullscreen();
+    }
+
+    function togglePreviewFullscreen() { document.getElementById('preview-container').classList.toggle('fullscreen'); }
+
+    function setupEditorEnhancements() {
+        const editor = document.getElementById('editor');
+        editor.addEventListener('touchstart', function(e) { this.focus(); }, {passive: true});
+        editor.addEventListener('click', function() { this.focus(); });
+        editor.addEventListener('keydown', function(e) {
+            if (e.key === 'Tab') {
+                e.preventDefault();
+                const start = this.selectionStart, end = this.selectionEnd;
+                this.value = this.value.substring(0, start) + "    " + this.value.substring(end);
+                this.selectionStart = this.selectionEnd = start + 4;
+                onEditorInput();
+            }
+        });
+    }
+</script>
+</body>
+</html>
