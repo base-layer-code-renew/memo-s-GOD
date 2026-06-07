@@ -1,3 +1,4 @@
+```html
 <!DOCTYPE html>
 <html lang="ja">
 <head>
@@ -10,7 +11,8 @@
             --panel: #2d2d2d; 
             --accent: #00ff88; 
             --delete-accent: #ff4444;
-            --cac-accent: #a855f7; /* CAC機能のテーマカラー */
+            --cac-accent: #a855f7;
+            --pr-accent: #3b82f6; 
             --text: #e0e0e0; 
         }
         body { 
@@ -26,7 +28,6 @@
             user-select: none;
         }
         
-        /* タブエリア */
         .tabs-bar { 
             background: #111; display: flex; align-items: center; 
             padding: 5px 10px 0; gap: 5px; border-bottom: 1px solid #444;
@@ -46,16 +47,14 @@
 
         .container { display: flex; flex-grow: 1; overflow: hidden; }
         
-        /* サイドバー */
         .sidebar { 
-            width: 380px; /* 少し拡張 */
+            width: 380px; 
             background: var(--panel); border-right: 1px solid #444; 
             display: flex; flex-direction: column; padding: 15px 20px; overflow-y: auto;
         }
         h2 { font-size: 16px; margin: 0 0 15px 0; border-left: 4px solid var(--accent); padding-left: 10px; }
         .section-title { font-size: 11px; color: #888; margin: 15px 0 8px; text-transform: uppercase; letter-spacing: 1px; }
         
-        /* Smart Input Group (単語/文章切替用) */
         .smart-input-group { background: #1a1a1a; border: 1px solid #444; border-radius: 4px; padding: 6px; margin-bottom: 5px; }
         .smart-input-group:focus-within { border-color: var(--accent); }
         .smart-input-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; }
@@ -73,7 +72,6 @@
         .smart-input-body .active { display: block; }
         .smart-input-body textarea { resize: vertical; min-height: 50px; max-height: 150px; }
 
-        /* ナビゲーション UI (探す・CAC) */
         .nav-ui { display: flex; align-items: center; gap: 5px; font-size: 11px; margin-bottom: 10px; justify-content: flex-end; padding: 0 2px; }
         .nav-ui.left-align { justify-content: space-between; }
         .nav-btn { background: #444; color: #fff; border: none; padding: 4px 10px; border-radius: 3px; font-size: 11px; cursor: pointer; }
@@ -81,14 +79,15 @@
         .count-disp { min-width: 40px; text-align: center; display: inline-block; color: var(--accent); font-weight: bold; }
         .check-label { display: flex; align-items: center; gap: 5px; color: #ddd; cursor: pointer; }
 
-        .checkbox-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; background: #222; padding: 10px; border-radius: 4px; }
-        .checkbox-grid label { display: flex; align-items: center; color: #ddd; font-size: 12px; cursor: pointer; }
+        .checkbox-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 5px; background: #222; padding: 10px; border-radius: 4px; }
+        .checkbox-grid label { display: flex; align-items: center; color: #ddd; font-size: 11px; cursor: pointer; }
         
         button { cursor: pointer; border: none; border-radius: 4px; font-weight: bold; transition: 0.2s; }
         .btn-exe { width: 100%; padding: 10px; color: #fff; margin: 5px 0 10px; font-size: 13px; }
         .del-theme { background: var(--delete-accent); }
         .rep-theme { background: var(--accent); color: #000; }
         .cac-theme { background: var(--cac-accent); color: #fff; }
+        .pr-theme { background: var(--pr-accent); color: #fff; }
         button:hover { opacity: 0.8; }
         
         .undo-redo-group { display: flex; gap: 5px; margin-bottom: 10px; }
@@ -102,11 +101,9 @@
         }
         .history-item { border-bottom: 1px solid #222; padding: 5px 0; color: #aaa; }
 
-        /* メインエリア・エディタ */
         .main { flex-grow: 1; display: flex; flex-direction: column; padding: 20px; gap: 10px; position: relative; }
         .toolbar { display: flex; gap: 10px; }
         
-        /* ワークスペース（ハイライトのバックドロップとエディタを重ねる場所） */
         .workspace {
             flex-grow: 1; display: flex; position: relative; overflow: hidden; border-radius: 4px;
             background: #111; border: 1px solid #444; 
@@ -115,8 +112,7 @@
         
         .backdrop {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            z-index: 1; pointer-events: none; overflow: hidden;
-            background: #111;
+            z-index: 1; pointer-events: none; overflow: hidden; background: #111;
         }
         .highlights {
             font-family: 'Consolas', monospace; font-size: 16px; line-height: 1.6; padding: 15px; 
@@ -124,10 +120,10 @@
             color: transparent; min-height: 100%;
         }
         
-        /* ハイライト用のスタイル */
-        .backdrop-text { color: #444; } /* 検索時の非マッチ文字（暗く） */
+        .backdrop-text { color: #444; }
         mark.match { background-color: rgba(255, 255, 0, 0.3); color: #fff; border-radius: 2px; }
         mark.active { background-color: rgba(255, 140, 0, 0.9); color: #fff; box-shadow: 0 0 4px rgba(255,140,0,0.8); border-radius: 2px; }
+        mark.excluded { background-color: transparent; color: #666; border: 2px dotted #666; border-radius: 2px; box-sizing: border-box; }
 
         textarea#editor { 
             position: absolute; top: 0; left: 0; width: 100%; height: 100%; box-sizing: border-box;
@@ -137,30 +133,23 @@
             -webkit-user-select: text !important; user-select: text !important;
             -webkit-tap-highlight-color: transparent; touch-action: manipulation; outline: none;
         }
-        textarea#editor.highlight-mode {
-            color: transparent !important; /* テキストを透明にして背後のハイライトを見せる */
-            caret-color: #fff;
-        }
+        textarea#editor.highlight-mode { color: transparent !important; caret-color: #fff; }
         
         .footer { display: flex; gap: 10px; align-items: center; }
         .btn-secondary { background: #444; color: #fff; padding: 8px 15px; font-size: 12px; }
         .btn-primary { background: #007bff; color: #fff; padding: 8px 15px; font-size: 12px; }
+        
+        .char-counter-wrap { display: flex; align-items: center; gap: 8px; margin-left: 10px; font-size: 12px; font-weight: bold; color: var(--accent); }
+        .char-counter-wrap label { font-size: 10px; color: #aaa; display: flex; align-items: center; gap: 3px; cursor: pointer; font-weight: normal; }
+        
         .status-bar { font-size: 10px; color: #666; text-align: right; }
         .restore-btn { background: #555; color: #fff; font-size: 9px; padding: 2px 5px; border-radius: 3px; float: right; }
         .restore-btn:hover { background: var(--accent); color: #000; }
 
-        #preview-container {
-            display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; 
-            background: #fff; z-index: 50; flex-direction: column;
-        }
-        #preview-container.fullscreen {
-            position: fixed !important; top: 0; left: 0; width: 100vw !important; height: 100vh !important;
-            z-index: 99999 !important; border-radius: 0; margin: 0; padding: 0;
-        }
+        #preview-container { display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: #fff; z-index: 50; flex-direction: column; }
+        #preview-container.fullscreen { position: fixed !important; top: 0; left: 0; width: 100vw !important; height: 100vh !important; z-index: 99999 !important; border-radius: 0; margin: 0; padding: 0; }
         .preview-controls { position: absolute; top: 10px; right: 20px; z-index: 60; display: flex; gap: 10px; }
         .preview-controls button { box-shadow: 0 2px 5px rgba(0,0,0,0.5); font-size: 12px; }
-        iframe { -webkit-overflow-scrolling: touch; overflow-y: scroll; }
-
     </style>
 </head>
 <body>
@@ -177,16 +166,16 @@
             <button id="redo-btn" class="btn-ctrl" onclick="redo()">↪ 進む</button>
         </div>
 
-        <!-- ★追加: 探す (SEARCH) -->
+        <!-- 探す (SEARCH) -->
         <div class="section-title">探す (SEARCH)</div>
         <div id="search-container"></div>
         <div class="nav-ui">
             <span class="count-disp" id="search-count">0/0</span>
-            <button class="nav-btn" onclick="navIndex(-1, 'search')">▲ 前へ</button>
-            <button class="nav-btn" onclick="navIndex(1, 'search')">▼ 次へ</button>
+            <button class="nav-btn" onclick="navIndex(-1, 'search')">▲</button>
+            <button class="nav-btn" onclick="navIndex(1, 'search')">▼</button>
         </div>
 
-        <!-- ★追加: CAC (CUT & COPY) -->
+        <!-- CAC (CUT & COPY) -->
         <div class="section-title">CAC (CUT & COPY)</div>
         <div id="cac-start-container"></div>
         <div class="nav-ui left-align">
@@ -208,18 +197,43 @@
         </div>
         <button class="btn-exe cac-theme" onclick="runCAC()">CAC 実行 (切取＆コピー)</button>
 
-        <!-- ★変更: 一括置換 (Smart Input対応) -->
+        <!-- PR (部分交換) -->
+        <div class="section-title">PR (部分交換)</div>
+        <div id="pr-container"></div>
+        <div class="nav-ui">
+            <span class="count-disp" id="pr-count">0/0</span>
+            <button class="nav-btn" onclick="navIndex(-1, 'pr')">▲</button>
+            <button class="nav-btn" onclick="navIndex(1, 'pr')">▼</button>
+        </div>
+        <button class="btn-exe pr-theme" onclick="runPR()">PR 実行 (＜＞の対象を交換)</button>
+
+        <!-- 一括置換 (REWRITE) -->
         <div class="section-title">一括置換 (REWRITE)</div>
         <div id="replace-find-container"></div>
+        <div class="nav-ui">
+            <span class="count-disp" id="replace-find-count">0/0</span>
+            <button class="nav-btn" onclick="navIndex(-1, 'replace-find')">▲</button>
+            <button class="nav-btn" onclick="navIndex(1, 'replace-find')">▼</button>
+        </div>
         <div id="replace-to-container"></div>
         <button class="btn-exe rep-theme" onclick="runReplace()">置換 ＆ 記録</button>
 
-        <!-- ★変更: 単語消去 (Smart Input対応) -->
+        <!-- 文字列消去 (DELETE) -->
         <div class="section-title">文字列消去 (DELETE)</div>
         <div id="del-container-1"></div>
+        <div class="nav-ui">
+            <span class="count-disp" id="del-1-count">0/0</span>
+            <button class="nav-btn" onclick="navIndex(-1, 'del-1')">▲</button>
+            <button class="nav-btn" onclick="navIndex(1, 'del-1')">▼</button>
+        </div>
         <div id="del-container-2"></div>
+        <div class="nav-ui">
+            <span class="count-disp" id="del-2-count">0/0</span>
+            <button class="nav-btn" onclick="navIndex(-1, 'del-2')">▲</button>
+            <button class="nav-btn" onclick="navIndex(1, 'del-2')">▼</button>
+        </div>
 
-        <div class="section-title">タイプ別消去</div>
+        <div class="section-title">タイプ別消去 (PA対応)</div>
         <div class="checkbox-grid">
             <label><input type="checkbox" value="num"> 数字</label>
             <label><input type="checkbox" value="sym"> 記号</label>
@@ -227,6 +241,8 @@
             <label><input type="checkbox" value="jp"> 日本語</label>
             <label><input type="checkbox" value="kan"> 漢字</label>
             <label><input type="checkbox" value="hira"> ひらがな</label>
+            <label><input type="checkbox" value="kata"> カタカナ</label>
+            <label><input type="checkbox" value="space"> 空白</label> <!-- ★空白追加 -->
         </div>
         <button class="btn-exe del-theme" onclick="runDelete()">消去実行 ＆ 記録</button>
 
@@ -248,8 +264,7 @@
             <div class="backdrop" id="backdrop">
                 <div class="highlights" id="highlights"></div>
             </div>
-            <!-- エディタフォーカス時はハイライトを解除して通常編集に戻す -->
-            <textarea id="editor" placeholder="ここにテキストを入力してください..." oninput="onEditorInput()" onfocus="setHighlightContext(null)"></textarea>
+            <textarea id="editor" placeholder="ここにテキストを入力してください..." oninput="onEditorInput()"></textarea>
             
             <div id="preview-container">
                 <div class="preview-controls">
@@ -264,6 +279,12 @@
             <button class="btn-primary" onclick="download('text')">テキスト保存</button>
             <button class="btn-secondary" onclick="download('memo')">履歴保存</button>
             <button class="rep-theme" style="padding: 8px 15px; font-size: 12px; margin-left: 10px;" onclick="runHTML()">▶ コード実行</button>
+            
+            <div class="char-counter-wrap">
+                <span id="char-count">0文字</span>
+                <label><input type="checkbox" id="ignore-space-chk" onchange="updateCharCount()"> 空白除外</label>
+            </div>
+
             <div style="flex-grow:1"></div>
             <div id="save-status" class="status-bar">保存済み</div>
         </div>
@@ -272,8 +293,32 @@
 
 <script>
     // ==========================================
-    // UI コンポーネント生成 (Smart Input)
+    // UI 制御 & マッピング
     // ==========================================
+    const HL_MAPPING = {
+        'search': { in: 'search-in', count: 'search-count' },
+        'cac-start': { in: 'cac-start-in', count: 'cac-start-count' },
+        'cac-end': { in: 'cac-end-in', count: 'cac-end-count' },
+        'pr': { in: 'pr-in', count: 'pr-count' },
+        'replace-find': { in: 'replace-find-in', count: 'replace-find-count' },
+        'del-1': { in: 'del-in-1', count: 'del-1-count' },
+        'del-2': { in: 'del-in-2', count: 'del-2-count' }
+    };
+
+    let activeIndices = {
+        'search': 0, 'cac-start': 0, 'cac-end': 0, 'pr': 0, 'replace-find': 0, 'del-1': 0, 'del-2': 0
+    };
+
+    let excludedMatchKeys = {
+        'search': new Set(), 'cac-start': new Set(), 'cac-end': new Set(), 'pr': new Set(),
+        'replace-find': new Set(), 'del-1': new Set(), 'del-2': new Set()
+    };
+
+    function clearExcludes(ctx = null) {
+        if (ctx) excludedMatchKeys[ctx].clear();
+        else Object.values(excludedMatchKeys).forEach(set => set.clear());
+    }
+
     function renderSmartInputs() {
         const create = (id, label, ph) => `
         <div class="smart-input-group" id="${id}" onfocusin="handleFocusIn('${id}')">
@@ -290,28 +335,30 @@
             </div>
         </div>`;
 
-        document.getElementById('search-container').innerHTML = create('search-in', '検索する文字', '探す文字列');
+        document.getElementById('search-container').innerHTML = create('search-in', '検索/PA (例:？記号（, ;）？）)', '探す・TSM(あ〜。)');
         document.getElementById('cac-start-container').innerHTML = create('cac-start-in', '始まりの文字', '開始地点');
         document.getElementById('cac-end-container').innerHTML = create('cac-end-in', '終わりの文字', '終了地点');
-        document.getElementById('replace-find-container').innerHTML = create('replace-find-in', '探す文字', '探す文字列');
+        document.getElementById('pr-container').innerHTML = create('pr-in', 'PR対象 (例: 色＜青＞＜黄＞)', '対象を指定 (＜＞は交換マーカー)');
+        document.getElementById('replace-find-container').innerHTML = create('replace-find-in', '探す文字 (PA/TSM対応)', '探す文字列');
         document.getElementById('replace-to-container').innerHTML = create('replace-to-in', '変える文字', '変える文字列');
-        document.getElementById('del-container-1').innerHTML = create('del-in-1', '消す文字 1', '消去する文字列');
-        document.getElementById('del-container-2').innerHTML = create('del-in-2', '消す文字 2', '消去する文字列');
+        document.getElementById('del-container-1').innerHTML = create('del-in-1', '消す文字 1 (PA/TSM対応)', '消去する文字列');
+        document.getElementById('del-container-2').innerHTML = create('del-in-2', '消す文字 2 (PA/TSM対応)', '消去する文字列');
     }
 
-    // Smart Input 操作ヘルパー
     function getInputValue(id) {
         const group = document.getElementById(id);
         if (!group) return "";
         const isWord = group.querySelector('.btn-mode.word').classList.contains('active');
         return isWord ? group.querySelector('.input-word').value : group.querySelector('.input-text').value;
     }
+    
     function setInputValue(id, val) {
         const group = document.getElementById(id);
         if (!group) return;
         group.querySelector('.input-word').value = val;
         group.querySelector('.input-text').value = val;
     }
+
     function switchInputMode(id, mode) {
         const group = document.getElementById(id);
         group.querySelectorAll('.btn-mode').forEach(b => b.classList.remove('active'));
@@ -324,6 +371,7 @@
         targetInput.value = group.querySelector(`.input-${otherMode}`).value;
         targetInput.focus();
     }
+
     function handleSmartInput(id) {
         const group = document.getElementById(id);
         const isWord = group.querySelector('.btn-mode.word').classList.contains('active');
@@ -331,46 +379,146 @@
         if (isWord) group.querySelector('.input-text').value = val;
         else group.querySelector('.input-word').value = val;
         
-        if (id === 'search-in') { searchActiveIdx = 0; setHighlightContext('search'); }
-        else if (id === 'cac-start-in') { cacStartActiveIdx = 0; setHighlightContext('cac-start'); }
-        else if (id === 'cac-end-in') { cacEndActiveIdx = 0; setHighlightContext('cac-end'); }
+        const contextKey = Object.keys(HL_MAPPING).find(key => HL_MAPPING[key].in === id);
+        if (contextKey) {
+            clearExcludes(contextKey); 
+            activeIndices[contextKey] = 0;
+            setHighlightContext(contextKey);
+        }
     }
-
-    // ==========================================
-    // ハイライト・ナビゲーション・コンテキスト管理
-    // ==========================================
-    let hlContext = null; // 'search', 'cac-start', 'cac-end', null
-    let searchActiveIdx = 0;
-    let cacStartActiveIdx = 0;
-    let cacEndActiveIdx = 0;
 
     function handleFocusIn(id) {
-        if (id === 'search-in') setHighlightContext('search');
-        else if (id === 'cac-start-in') setHighlightContext('cac-start');
-        else if (id === 'cac-end-in') setHighlightContext('cac-end');
-        else setHighlightContext(null);
+        const contextKey = Object.keys(HL_MAPPING).find(key => HL_MAPPING[key].in === id);
+        if (contextKey) setHighlightContext(contextKey);
     }
 
-    function setHighlightContext(ctx) {
-        hlContext = ctx;
-        updateHighlight();
+    // ==========================================
+    // ★ PA(部分抽象化) & TSM(〜) & PR(＜＞) 構文解析
+    // ==========================================
+    const PATTERNS_PA = {
+        '数字': '0-9０-９',
+        '記号': '\\x21-\\x2f\\x3a-\\x40\\x5b-\\x60\\x7b-\\x7e！-／：-＠［-｀｛-｝\u2000-\u206F\u2500-\u257F\u25A0-\u25FF\u2190-\u21FF\u2200-\u22FF\u2600-\u26FF\u3000-\u303F',
+        'ローマ字': 'a-zA-Zａ-ｚＡ-Ｚ',
+        '日本語': 'ぁ-んァ-ヶー一-龠',
+        '漢字': '一-龠',
+        'ひらがな': 'ぁ-ん',
+        'カタカナ': 'ァ-ヶー',
+        '空白': '\\s\\u3000' // ★空白をサポート
+    };
+
+    function escapeRegExp(string) {
+        return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     }
 
-    function getMatches(text, keyword) {
+    function parseKeyword(keyword, isPR = false) {
+        let tokens = [];
+        if (isPR) {
+            let parts = keyword.split(/(＜.*?＞)/);
+            for (let p of parts) {
+                if (!p) continue;
+                if (p.startsWith('＜') && p.endsWith('＞')) {
+                    tokens.push({ type: 'swap', text: p.substring(1, p.length - 1) });
+                } else {
+                    tokens.push({ type: 'normal', text: p });
+                }
+            }
+        } else {
+            tokens.push({ type: 'normal', text: keyword });
+        }
+        
+        let finalTokens = [];
+        for (let tok of tokens) {
+            let parts = tok.text.split(/(？.*?？）|〜)/);
+            for (let p of parts) {
+                if (!p) continue;
+                if (p === '〜') {
+                    finalTokens.push({ type: 'tsm', text: '〜', isSwap: tok.type === 'swap' });
+                } else if (p.startsWith('？') && p.endsWith('？）')) {
+                    finalTokens.push({ type: 'pa', text: p, isSwap: tok.type === 'swap' });
+                } else {
+                    finalTokens.push({ type: 'text', text: p, isSwap: tok.type === 'swap' });
+                }
+            }
+        }
+        return finalTokens;
+    }
+
+    function buildSearchRegexFromTokens(tokens) {
+        if (tokens.length === 0) return null;
+        let regexStr = "";
+        
+        for (let tok of tokens) {
+            let partRegex = "";
+            if (tok.type === 'tsm') {
+                partRegex = "[\\s\\S]*?"; 
+            } else if (tok.type === 'pa') {
+                let inner = tok.text.substring(1, tok.text.length - 2); 
+                let excludeStr = "";
+                let match = inner.match(/（(.*?)）$/);
+                if (match) {
+                    excludeStr = match[1];
+                    inner = inner.replace(/（.*?）$/, '');
+                }
+                let types = inner.split('＆');
+                let charClass = "";
+                let isValid = false;
+                for (let t of types) {
+                    if (PATTERNS_PA[t]) { charClass += PATTERNS_PA[t]; isValid = true; }
+                }
+                if (isValid) {
+                    let negLookahead = "";
+                    if (excludeStr) {
+                        let excludes = excludeStr.split(/[\s\u3000]+/).filter(s => s);
+                        if (excludes.length > 0) {
+                            negLookahead = `(?!${excludes.map(escapeRegExp).join('|')})`;
+                        }
+                    }
+                    partRegex = `(?:${negLookahead}[${charClass}])+`;
+                } else {
+                    partRegex = escapeRegExp(tok.text);
+                }
+            } else {
+                partRegex = escapeRegExp(tok.text);
+            }
+            regexStr += `(${partRegex})`;
+        }
+        try { return new RegExp(regexStr, 'g'); } catch(e) { return null; }
+    }
+
+    function getMatches(text, keyword, isPR = false) {
         if (!keyword) return [];
+        let tokens = parseKeyword(keyword, isPR);
+        let regex = buildSearchRegexFromTokens(tokens);
+        if (!regex) return [];
+        
         let matches = [];
-        let lowerText = text.toLowerCase();
-        let lowerKeyword = keyword.toLowerCase();
-        let index = 0;
-        while ((index = lowerText.indexOf(lowerKeyword, index)) !== -1) {
-            matches.push({ start: index, end: index + keyword.length });
-            index += keyword.length; 
+        let match;
+        regex.lastIndex = 0;
+        while ((match = regex.exec(text)) !== null) {
+            if (match[0].length === 0) { regex.lastIndex++; continue; }
+            matches.push({ 
+                start: match.index, 
+                end: match.index + match[0].length, 
+                text: match[0],
+                groups: match, 
+                tokens: tokens 
+            });
         }
         return matches;
     }
 
     function escapeHtml(str) {
         return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+    }
+
+    // ==========================================
+    // ハイライト・ナビゲーション & 除外トグル
+    // ==========================================
+    let hlContext = null;
+
+    function setHighlightContext(ctx) {
+        hlContext = ctx;
+        updateHighlight();
     }
 
     function updateHighlight() {
@@ -386,11 +534,8 @@
             return;
         }
         
-        let keyword = "";
-        let activeIdx = 0;
-        if (hlContext === 'search') { keyword = getInputValue('search-in'); activeIdx = searchActiveIdx; }
-        else if (hlContext === 'cac-start') { keyword = getInputValue('cac-start-in'); activeIdx = cacStartActiveIdx; }
-        else if (hlContext === 'cac-end') { keyword = getInputValue('cac-end-in'); activeIdx = cacEndActiveIdx; }
+        const inId = HL_MAPPING[hlContext].in;
+        let keyword = getInputValue(inId);
         
         if (!keyword) {
             editor.classList.remove('highlight-mode');
@@ -399,24 +544,36 @@
         }
 
         editor.classList.add('highlight-mode');
-        let matches = getMatches(text, keyword);
+        let isPR = (hlContext === 'pr');
+        let matches = getMatches(text, keyword, isPR);
         
         if (matches.length === 0) {
             highlights.innerHTML = `<span class="backdrop-text">${escapeHtml(text)}</span>`;
             return;
         }
         
-        // 範囲外アクセス補正
-        if (activeIdx >= matches.length) activeIdx = matches.length - 1;
-        if (activeIdx < 0) activeIdx = 0;
+        let validMatches = matches.filter(m => !excludedMatchKeys[hlContext].has(`${m.start}_${m.end}`));
+        let activeIdx = activeIndices[hlContext];
+        if (activeIdx >= validMatches.length) activeIdx = Math.max(0, validMatches.length - 1);
+        activeIndices[hlContext] = activeIdx;
         
-        // ハイライトHTML構築
         let resultHTML = "";
         let lastIndex = 0;
-        matches.forEach((match, i) => {
+        matches.forEach((match) => {
             resultHTML += `<span class="backdrop-text">${escapeHtml(text.substring(lastIndex, match.start))}</span>`;
             let matchText = escapeHtml(text.substring(match.start, match.end));
-            let markClass = (i === activeIdx) ? 'active' : 'match';
+            
+            let matchKey = `${match.start}_${match.end}`;
+            let isExcluded = excludedMatchKeys[hlContext].has(matchKey);
+            let markClass = 'match';
+            
+            if (isExcluded) {
+                markClass = 'excluded';
+            } else {
+                let validIdx = validMatches.indexOf(match);
+                if (validIdx === activeIdx) markClass = 'active';
+            }
+            
             resultHTML += `<mark class="${markClass}">${matchText}</mark>`;
             lastIndex = match.end;
         });
@@ -427,39 +584,34 @@
     }
 
     function updateHighlightUI(text) {
-        const updateDisp = (id, keyword, idx) => {
-            let m = getMatches(text, keyword);
-            let disp = document.getElementById(id);
-            if(disp) disp.innerText = m.length > 0 ? `${idx + 1}/${m.length}` : `0/0`;
-        };
-        updateDisp('search-count', getInputValue('search-in'), searchActiveIdx);
-        updateDisp('cac-start-count', getInputValue('cac-start-in'), cacStartActiveIdx);
-        updateDisp('cac-end-count', getInputValue('cac-end-in'), cacEndActiveIdx);
+        Object.keys(HL_MAPPING).forEach(key => {
+            let keyword = getInputValue(HL_MAPPING[key].in);
+            let isPR = (key === 'pr');
+            let m = getMatches(text, keyword, isPR);
+            let validLen = m.filter(match => !excludedMatchKeys[key].has(`${match.start}_${match.end}`)).length;
+            let disp = document.getElementById(HL_MAPPING[key].count);
+            if(disp) disp.innerText = validLen > 0 ? `${activeIndices[key] + 1}/${validLen}` : `0/0`;
+        });
     }
 
     function navIndex(dir, type) {
-        const text = document.getElementById('editor').value;
-        let keyword = "";
-        let curr = 0;
-        
-        if (type === 'search') { keyword = getInputValue('search-in'); curr = searchActiveIdx; }
-        else if (type === 'cac-start') { keyword = getInputValue('cac-start-in'); curr = cacStartActiveIdx; }
-        else if (type === 'cac-end') { keyword = getInputValue('cac-end-in'); curr = cacEndActiveIdx; }
-        
+        const inId = HL_MAPPING[type].in;
+        const keyword = getInputValue(inId);
         if (!keyword) return;
-        let matches = getMatches(text, keyword);
-        if (matches.length === 0) return;
         
-        curr += dir;
-        if (curr < 0) curr = matches.length - 1;
-        if (curr >= matches.length) curr = 0;
+        const text = document.getElementById('editor').value;
+        let isPR = (type === 'pr');
+        let matches = getMatches(text, keyword, isPR);
+        let validMatches = matches.filter(m => !excludedMatchKeys[type].has(`${m.start}_${m.end}`));
+        if (validMatches.length === 0) return;
         
-        if (type === 'search') { searchActiveIdx = curr; setHighlightContext('search'); }
-        else if (type === 'cac-start') { cacStartActiveIdx = curr; setHighlightContext('cac-start'); }
-        else if (type === 'cac-end') { cacEndActiveIdx = curr; setHighlightContext('cac-end'); }
+        activeIndices[type] += dir;
+        if (activeIndices[type] < 0) activeIndices[type] = validMatches.length - 1;
+        if (activeIndices[type] >= validMatches.length) activeIndices[type] = 0;
+        
+        setHighlightContext(type);
     }
 
-    // スクロール同期
     const editorEl = document.getElementById('editor');
     const backdropEl = document.getElementById('backdrop');
     const highlightsEl = document.getElementById('highlights');
@@ -476,22 +628,106 @@
             const markBottom = markTop + activeMark.offsetHeight;
             const eTop = editorEl.scrollTop;
             const eHeight = editorEl.clientHeight;
-            if (markTop < eTop + 20) {
-                editorEl.scrollTop = markTop - 20;
-            } else if (markBottom > eTop + eHeight - 20) {
-                editorEl.scrollTop = markBottom - eHeight + 20;
-            }
+            if (markTop < eTop + 20) editorEl.scrollTop = markTop - 20;
+            else if (markBottom > eTop + eHeight - 20) editorEl.scrollTop = markBottom - eHeight + 20;
         }
     }
 
+    editorEl.addEventListener('click', function(e) {
+        if (!hlContext) return; 
+        
+        let pos = this.selectionStart;
+        if (this.selectionStart !== this.selectionEnd) return; 
+        
+        const inId = HL_MAPPING[hlContext].in;
+        let keyword = getInputValue(inId);
+        if (!keyword) return;
+        
+        let isPR = (hlContext === 'pr');
+        let matches = getMatches(this.value, keyword, isPR);
+        let clickedMatch = matches.find(m => pos >= m.start && pos <= m.end);
+        
+        if (clickedMatch) {
+            let matchKey = `${clickedMatch.start}_${clickedMatch.end}`;
+            if (excludedMatchKeys[hlContext].has(matchKey)) {
+                excludedMatchKeys[hlContext].delete(matchKey); 
+            } else {
+                excludedMatchKeys[hlContext].add(matchKey); 
+            }
+            updateHighlight();
+        }
+    });
+
+    function updateCharCount() {
+        let text = document.getElementById('editor').value;
+        if (document.getElementById('ignore-space-chk').checked) {
+            text = text.replace(/[\s\u3000]/g, '');
+        }
+        document.getElementById('char-count').innerText = text.length + '文字';
+    }
+
     function onEditorInput() {
+        clearExcludes(); 
         autoSave();
         updateHighlight();
+        updateCharCount();
     }
 
     // ==========================================
-    // CAC 機能実行ロジック
+    // 実行ロジック
     // ==========================================
+    
+    // PR: キャプチャグループの順序入れ替え
+    function runPR() {
+        let keyword = getInputValue('pr-in');
+        if (!keyword) return alert("PRエラー：交換対象を入力してください。");
+        let content = document.getElementById('editor').value;
+        
+        let matches = getMatches(content, keyword, true);
+        let validMatches = matches.filter(m => !excludedMatchKeys['pr'].has(`${m.start}_${m.end}`));
+        
+        if (validMatches.length === 0) return alert("PRエラー：対象が見つかりません。");
+        
+        let tokens = parseKeyword(keyword, true);
+        let swapIndices = [];
+        for (let i = 0; i < tokens.length; i++) {
+            if (tokens[i].isSwap) swapIndices.push(i);
+        }
+        if (swapIndices.length < 2) return alert("PRエラー：入力欄に＜＞で囲まれた交換対象が2つ以上必要です。（例: 色＜？青？＞＜黄＞）");
+        
+        let idx1 = swapIndices[0];
+        let idx2 = swapIndices[1];
+        
+        saveState();
+        let changeCount = 0;
+        
+        for (let i = validMatches.length - 1; i >= 0; i--) {
+            let m = validMatches[i];
+            let replaced = "";
+            for (let j = 0; j < tokens.length; j++) {
+                let groupIdx = j + 1;
+                if (j === idx1) groupIdx = idx2 + 1;
+                else if (j === idx2) groupIdx = idx1 + 1;
+                
+                replaced += m.groups[groupIdx] || "";
+            }
+            if (replaced !== m.text) {
+                content = content.substring(0, m.start) + replaced + content.substring(m.end);
+                changeCount++;
+            }
+        }
+        
+        if (changeCount > 0) {
+            applyChanges(content, `PR: 部分交換 (${changeCount}件)`);
+            alert(`PR完了：${changeCount}件の指定箇所を入れ替えました。`);
+        } else {
+            const memo = memos.find(m => m.id === activeMemoId);
+            memo.undoStack.pop();
+            alert("PRエラー：交換によって文字列が変化しませんでした。");
+        }
+    }
+
+    // CAC
     function copyToClipboard(text) {
         const ta = document.createElement('textarea');
         ta.value = text; ta.style.position = 'fixed'; ta.style.left = '-9999px';
@@ -505,15 +741,18 @@
         let startStr = getInputValue('cac-start-in');
         let endStr = getInputValue('cac-end-in');
         
-        if (!startStr || !endStr) return alert("CACエラー：開始と終了の文字列を両方入力してください。");
+        if (!startStr || !endStr) return alert("CACエラー：開始と終了を入力してください。");
         
-        let sMatches = getMatches(content, startStr);
-        let eMatches = getMatches(content, endStr);
-        if (sMatches.length === 0) return alert("CACエラー：開始文字列が見つかりません。");
-        if (eMatches.length === 0) return alert("CACエラー：終了文字列が見つかりません。");
+        let sMatchesAll = getMatches(content, startStr);
+        let eMatchesAll = getMatches(content, endStr);
+        let sMatches = sMatchesAll.filter(m => !excludedMatchKeys['cac-start'].has(`${m.start}_${m.end}`));
+        let eMatches = eMatchesAll.filter(m => !excludedMatchKeys['cac-end'].has(`${m.start}_${m.end}`));
         
-        let sIdx = cacStartActiveIdx < sMatches.length ? cacStartActiveIdx : 0;
-        let eIdx = cacEndActiveIdx < eMatches.length ? cacEndActiveIdx : 0;
+        if (sMatches.length === 0) return alert("CACエラー：有効な開始文字列が見つかりません。");
+        if (eMatches.length === 0) return alert("CACエラー：有効な終了文字列が見つかりません。");
+        
+        let sIdx = activeIndices['cac-start'] < sMatches.length ? activeIndices['cac-start'] : 0;
+        let eIdx = activeIndices['cac-end'] < eMatches.length ? activeIndices['cac-end'] : 0;
         
         let startMatch = sMatches[sIdx];
         let endMatch = eMatches[eIdx];
@@ -525,7 +764,7 @@
         let cutEndPos = endInclude ? endMatch.end : endMatch.start;
         
         if (cutStartPos >= cutEndPos) {
-            return alert("CACエラー：終了位置が開始位置より前、または同じ位置にあります。\n（「次へ」ボタンで別の候補を選択するか、条件を見直してください）");
+            return alert("CACエラー：終了位置が開始位置より前にあります。");
         }
         
         saveState();
@@ -534,8 +773,6 @@
         
         copyToClipboard(targetText);
         applyChanges(newContent, `CAC: 切取コピー (${targetText.length}文字)`);
-        setHighlightContext(null); // 完了後はハイライト解除
-        
         alert("CAC完了：指定範囲を切り取り、クリップボードにコピーしました。");
     }
 
@@ -546,17 +783,19 @@
     let activeMemoId = null;
     let deletedMemos = [];
 
-    const patterns = {
+    const DELETE_PATTERNS = {
         num: { regex: /[0-9０-９]/g, label: "数字" },
         sym: { regex: /[\x21-\x2f\x3a-\x40\x5b-\x60\x7b-\x7e]|[！-／：-＠［-｀｛-｝]|[\u2000-\u206F\u2500-\u257F\u25A0-\u25FF\u2190-\u21FF\u2200-\u22FF\u2600-\u26FF\u3000-\u303F]/g, label: "記号" },
         roma: { regex: /[a-zA-Z]/g, label: "ローマ字" },
         jp: { regex: /[ぁ-んァ-ヶー一-龠]/g, label: "日本語" },
         kan: { regex: /[一-龠]/g, label: "漢字" },
-        hira: { regex: /[ぁ-ん]/g, label: "ひらがな" }
+        hira: { regex: /[ぁ-ん]/g, label: "ひらがな" },
+        kata: { regex: /[ァ-ヶー]/g, label: "カタカナ" },
+        space: { regex: /[\s\u3000]/g, label: "空白" } // ★タイプ別消去の空白パターンを追加
     };
 
     window.onload = () => {
-        renderSmartInputs(); // UI初期化
+        renderSmartInputs();
         const saved = localStorage.getItem('ultimate_memo_data_v2');
         if (saved) {
             memos = JSON.parse(saved);
@@ -586,8 +825,10 @@
         document.getElementById('editor').value = memo.content;
         document.getElementById('memo-title').value = memo.title;
         updateHistoryUI(); updateCtrlButtons();
-        setHighlightContext(null); // メモ切替時はハイライト解除
+        updateCharCount();
+        clearExcludes();
         if (document.getElementById('preview-container').style.display === 'flex') endTest();
+        updateHighlight();
     }
 
     function renderTabs() {
@@ -646,17 +887,25 @@
         let info = [];
         saveState();
 
-        ['del-in-1', 'del-in-2'].forEach(id => {
-            const val = getInputValue(id);
-            if (val && content.includes(val)) {
-                content = content.split(val).join("");
-                info.push(`「${val}」`);
-                setInputValue(id, "");
+        ['del-1', 'del-2'].forEach(key => {
+            const inId = HL_MAPPING[key].in;
+            const val = getInputValue(inId);
+            if (val) {
+                let matches = getMatches(content, val);
+                let validMatches = matches.filter(m => !excludedMatchKeys[key].has(`${m.start}_${m.end}`));
+                if (validMatches.length > 0) {
+                    for (let i = validMatches.length - 1; i >= 0; i--) {
+                        let m = validMatches[i];
+                        content = content.substring(0, m.start) + content.substring(m.end);
+                    }
+                    info.push(`「${val}」`);
+                    setInputValue(inId, "");
+                }
             }
         });
 
         document.querySelectorAll('.checkbox-grid input:checked').forEach(chk => {
-            const p = patterns[chk.value];
+            const p = DELETE_PATTERNS[chk.value];
             if (content.match(p.regex)) {
                 content = content.replace(p.regex, "");
                 info.push(`[${p.label}]`);
@@ -674,16 +923,21 @@
         let content = document.getElementById('editor').value;
 
         if (!findVal) return alert("探す単語を入力してください");
-        saveState();
+        
+        let matches = getMatches(content, findVal);
+        let validMatches = matches.filter(m => !excludedMatchKeys['replace-find'].has(`${m.start}_${m.end}`));
 
-        const newContent = content.split(findVal).join(replaceVal);
-        if (content !== newContent) {
-            applyChanges(newContent, `置換: 「${findVal}」→「${replaceVal}」`);
+        if (validMatches.length > 0) {
+            saveState();
+            for (let i = validMatches.length - 1; i >= 0; i--) {
+                let m = validMatches[i];
+                content = content.substring(0, m.start) + replaceVal + content.substring(m.end);
+            }
+            applyChanges(content, `置換: 「${findVal}」→「${replaceVal}」`);
             setInputValue('replace-find-in', "");
             setInputValue('replace-to-in', "");
         } else {
-            const memo = memos.find(m => m.id === activeMemoId);
-            memo.undoStack.pop(); alert("見つかりませんでした");
+            alert("見つかりませんでした");
         }
     }
 
@@ -789,7 +1043,6 @@
     function setupEditorEnhancements() {
         const editor = document.getElementById('editor');
         editor.addEventListener('touchstart', function(e) { this.focus(); }, {passive: true});
-        editor.addEventListener('click', function() { this.focus(); });
         editor.addEventListener('keydown', function(e) {
             if (e.key === 'Tab') {
                 e.preventDefault();
@@ -803,3 +1056,5 @@
 </script>
 </body>
 </html>
+
+```
