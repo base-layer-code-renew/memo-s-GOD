@@ -175,8 +175,8 @@
             <button class="nav-btn" onclick="navIndex(1, 'search')">▼</button>
         </div>
 
-        <!-- CAC (CUT & COPY) -->
-        <div class="section-title">CAC (CUT & COPY)</div>
+        <!-- CAC / C / CAR (CUT & REPLACE) -->
+        <div class="section-title">CAC / C / CAR (切取 / 置換)</div>
         <div id="cac-start-container"></div>
         <div class="nav-ui left-align">
             <label class="check-label"><input type="checkbox" id="cac-start-include" checked> 含む</label>
@@ -195,7 +195,29 @@
                 <button class="nav-btn" onclick="navIndex(1, 'cac-end')">▼</button>
             </div>
         </div>
-        <button class="btn-exe cac-theme" onclick="runCAC()">CAC 実行 (切取＆コピー)</button>
+        
+        <div style="display:flex; gap:5px; margin-bottom:5px;">
+            <button class="btn-exe cac-theme" style="margin:0; flex:3;" onclick="runCAC(true)">CAC (切取＆コピー)</button>
+            <button class="btn-exe cac-theme" style="margin:0; flex:1; filter:brightness(0.8);" onclick="runCAC(false)">C (切取)</button>
+        </div>
+
+        <!-- CAR 置き換え文字入力 -->
+        <div class="smart-input-group" id="car-replace-in">
+            <div class="smart-input-header">
+                <span class="smart-input-label">CARの置き換え文字</span>
+                <div class="mode-switch">
+                    <input type="file" id="car-file-input" style="display:none;" onchange="loadCarFile(event)">
+                    <button type="button" class="btn-mode" style="background:#444;" onclick="document.getElementById('car-file-input').click()">📁</button>
+                    <button type="button" class="btn-mode word active" onclick="switchInputMode('car-replace-in', 'word')">単語</button>
+                    <button type="button" class="btn-mode text" onclick="switchInputMode('car-replace-in', 'text')">文章</button>
+                </div>
+            </div>
+            <div class="smart-input-body">
+                <input type="text" class="smart-input input-word active" placeholder="置き換える文字">
+                <textarea class="smart-input input-text" placeholder="置き換える文字 (改行可)"></textarea>
+            </div>
+        </div>
+        <button class="btn-exe cac-theme" style="background:#ec4899; margin-top:0;" onclick="runCAR()">CAR (切取＆置き換え)</button>
 
         <!-- PR (部分交換) -->
         <div class="section-title">PR (部分交換)</div>
@@ -242,7 +264,7 @@
             <label><input type="checkbox" value="kan"> 漢字</label>
             <label><input type="checkbox" value="hira"> ひらがな</label>
             <label><input type="checkbox" value="kata"> カタカナ</label>
-            <label><input type="checkbox" value="space"> 空白</label> <!-- ★空白追加 -->
+            <label><input type="checkbox" value="space"> 空白</label>
         </div>
         <button class="btn-exe del-theme" onclick="runDelete()">消去実行 ＆ 記録</button>
 
@@ -335,11 +357,11 @@
             </div>
         </div>`;
 
-        document.getElementById('search-container').innerHTML = create('search-in', '検索/PA (例:？記号（, ;）？）)', '探す・TSM(あ〜。)');
+        document.getElementById('search-container').innerHTML = create('search-in', '検索/PA (例:？記号＆あ？）)', '探す・TSM(あ〜。)');
         document.getElementById('cac-start-container').innerHTML = create('cac-start-in', '始まりの文字', '開始地点');
         document.getElementById('cac-end-container').innerHTML = create('cac-end-in', '終わりの文字', '終了地点');
-        document.getElementById('pr-container').innerHTML = create('pr-in', 'PR対象 (例: 色＜青＞＜黄＞)', '対象を指定 (＜＞は交換マーカー)');
-        document.getElementById('replace-find-container').innerHTML = create('replace-find-in', '探す文字 (PA/TSM対応)', '探す文字列');
+        document.getElementById('pr-container').innerHTML = create('pr-in', 'PR対象 (例: 色＜？青？＞＜黄＞)', '対象を指定 (＜＞は交換マーカー)');
+        document.getElementById('replace-find-container').innerHTML = create('replace-find-in', '探す文字 (PA/TSM/OPT対応)', '探す文字列 (例: あ＃2＆？漢字？＃）う)');
         document.getElementById('replace-to-container').innerHTML = create('replace-to-in', '変える文字', '変える文字列');
         document.getElementById('del-container-1').innerHTML = create('del-in-1', '消す文字 1 (PA/TSM対応)', '消去する文字列');
         document.getElementById('del-container-2').innerHTML = create('del-in-2', '消す文字 2 (PA/TSM対応)', '消去する文字列');
@@ -392,18 +414,30 @@
         if (contextKey) setHighlightContext(contextKey);
     }
 
+    // CARのファイル読み込み
+    function loadCarFile(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+            setInputValue('car-replace-in', ev.target.result);
+        };
+        reader.readAsText(file);
+        e.target.value = "";
+    }
+
     // ==========================================
-    // ★ PA(部分抽象化) & TSM(〜) & PR(＜＞) 構文解析
+    // ★ PA/TSM/PR/OPT 構文解析エンジン
     // ==========================================
     const PATTERNS_PA = {
         '数字': '0-9０-９',
-        '記号': '\\x21-\\x2f\\x3a-\\x40\\x5b-\\x60\\x7b-\\x7e！-／：-＠［-｀｛-｝\u2000-\u206F\u2500-\u257F\u25A0-\u25FF\u2190-\u21FF\u2200-\u22FF\u2600-\u26FF\u3000-\u303F',
+        '記号': '\\x21-\\x2f\\x3a-\\x40\\x5b-\\x60\\x7b-\\x7e！-／：-＠［-｀｛-｝\u2000-\u206F\u2500-\u257F\u25A0-\u25FF\u2190-\u21FF\u2200-\u22FF\u2600-\u26FF\u3000-\u303F：・¥￥ー', // 追加分含む
         'ローマ字': 'a-zA-Zａ-ｚＡ-Ｚ',
         '日本語': 'ぁ-んァ-ヶー一-龠',
         '漢字': '一-龠',
         'ひらがな': 'ぁ-ん',
         'カタカナ': 'ァ-ヶー',
-        '空白': '\\s\\u3000' // ★空白をサポート
+        '空白': '\\s\\u3000'
     };
 
     function escapeRegExp(string) {
@@ -428,19 +462,50 @@
         
         let finalTokens = [];
         for (let tok of tokens) {
-            let parts = tok.text.split(/(？.*?？）|〜)/);
+            let parts = tok.text.split(/(？.*?？）|＃.*?＃）|〜)/);
             for (let p of parts) {
                 if (!p) continue;
                 if (p === '〜') {
                     finalTokens.push({ type: 'tsm', text: '〜', isSwap: tok.type === 'swap' });
                 } else if (p.startsWith('？') && p.endsWith('？）')) {
                     finalTokens.push({ type: 'pa', text: p, isSwap: tok.type === 'swap' });
+                } else if (p.startsWith('＃') && p.endsWith('＃）')) {
+                    finalTokens.push({ type: 'opt', text: p, isSwap: tok.type === 'swap' }); // ★OPT追加
                 } else {
                     finalTokens.push({ type: 'text', text: p, isSwap: tok.type === 'swap' });
                 }
             }
         }
         return finalTokens;
+    }
+
+    function parseInnerClass(innerStr) {
+        let excludeStr = "";
+        let match = innerStr.match(/（(.*?)）$/);
+        if (match) {
+            excludeStr = match[1];
+            innerStr = innerStr.replace(/（.*?）$/, '');
+        }
+        let types = innerStr.split('＆');
+        let charClass = "";
+        for (let t of types) {
+            let cleanT = t.replace(/^？(.*)？$/, '$1'); // ネスト対応
+            if (PATTERNS_PA[cleanT]) {
+                charClass += PATTERNS_PA[cleanT];
+            } else {
+                // 普通の文字もエスケープして許容する
+                charClass += escapeRegExp(cleanT);
+            }
+        }
+        
+        let negLookahead = "";
+        if (excludeStr) {
+            let excludes = excludeStr.split(/[\s\u3000]+/).filter(s => s);
+            if (excludes.length > 0) {
+                negLookahead = `(?!${excludes.map(escapeRegExp).join('|')})`;
+            }
+        }
+        return { charClass, negLookahead };
     }
 
     function buildSearchRegexFromTokens(tokens) {
@@ -453,27 +518,17 @@
                 partRegex = "[\\s\\S]*?"; 
             } else if (tok.type === 'pa') {
                 let inner = tok.text.substring(1, tok.text.length - 2); 
-                let excludeStr = "";
-                let match = inner.match(/（(.*?)）$/);
-                if (match) {
-                    excludeStr = match[1];
-                    inner = inner.replace(/（.*?）$/, '');
-                }
-                let types = inner.split('＆');
-                let charClass = "";
-                let isValid = false;
-                for (let t of types) {
-                    if (PATTERNS_PA[t]) { charClass += PATTERNS_PA[t]; isValid = true; }
-                }
-                if (isValid) {
-                    let negLookahead = "";
-                    if (excludeStr) {
-                        let excludes = excludeStr.split(/[\s\u3000]+/).filter(s => s);
-                        if (excludes.length > 0) {
-                            negLookahead = `(?!${excludes.map(escapeRegExp).join('|')})`;
-                        }
-                    }
+                let { charClass, negLookahead } = parseInnerClass(inner);
+                if (charClass) {
                     partRegex = `(?:${negLookahead}[${charClass}])+`;
+                } else {
+                    partRegex = escapeRegExp(tok.text);
+                }
+            } else if (tok.type === 'opt') {
+                let inner = tok.text.substring(1, tok.text.length - 2); 
+                let { charClass, negLookahead } = parseInnerClass(inner);
+                if (charClass) {
+                    partRegex = `(?:${negLookahead}[${charClass}])*`; // 0回以上（無視/複数）
                 } else {
                     partRegex = escapeRegExp(tok.text);
                 }
@@ -666,11 +721,29 @@
         document.getElementById('char-count').innerText = text.length + '文字';
     }
 
+    // ★ Undo/Redo用のデバウンストラッキング
+    let typingTimer;
     function onEditorInput() {
         clearExcludes(); 
         autoSave();
         updateHighlight();
         updateCharCount();
+        
+        clearTimeout(typingTimer);
+        typingTimer = setTimeout(() => {
+            saveTypingState();
+        }, 800);
+    }
+    
+    function saveTypingState() {
+        const memo = memos.find(m => m.id === activeMemoId);
+        if (!memo) return;
+        // 変更があればスタックに積む
+        if (memo.undoStack.length === 0 || memo.undoStack[memo.undoStack.length - 1].content !== memo.content) {
+            memo.undoStack.push({ content: memo.content, history: [...memo.history] });
+            memo.redoStack = [];
+            updateCtrlButtons();
+        }
     }
 
     // ==========================================
@@ -693,7 +766,7 @@
         for (let i = 0; i < tokens.length; i++) {
             if (tokens[i].isSwap) swapIndices.push(i);
         }
-        if (swapIndices.length < 2) return alert("PRエラー：入力欄に＜＞で囲まれた交換対象が2つ以上必要です。（例: 色＜？青？＞＜黄＞）");
+        if (swapIndices.length < 2) return alert("PRエラー：入力欄に＜＞で囲まれた交換対象が2つ以上必要です。");
         
         let idx1 = swapIndices[0];
         let idx2 = swapIndices[1];
@@ -727,7 +800,7 @@
         }
     }
 
-    // CAC
+    // CAC / C / CAR 共通基盤
     function copyToClipboard(text) {
         const ta = document.createElement('textarea');
         ta.value = text; ta.style.position = 'fixed'; ta.style.left = '-9999px';
@@ -736,20 +809,20 @@
         document.body.removeChild(ta);
     }
 
-    function runCAC() {
+    function executeCutBase(onSuccess) {
         let content = document.getElementById('editor').value;
         let startStr = getInputValue('cac-start-in');
         let endStr = getInputValue('cac-end-in');
         
-        if (!startStr || !endStr) return alert("CACエラー：開始と終了を入力してください。");
+        if (!startStr || !endStr) { alert("エラー：開始と終了を入力してください。"); return null; }
         
         let sMatchesAll = getMatches(content, startStr);
         let eMatchesAll = getMatches(content, endStr);
         let sMatches = sMatchesAll.filter(m => !excludedMatchKeys['cac-start'].has(`${m.start}_${m.end}`));
         let eMatches = eMatchesAll.filter(m => !excludedMatchKeys['cac-end'].has(`${m.start}_${m.end}`));
         
-        if (sMatches.length === 0) return alert("CACエラー：有効な開始文字列が見つかりません。");
-        if (eMatches.length === 0) return alert("CACエラー：有効な終了文字列が見つかりません。");
+        if (sMatches.length === 0) { alert("エラー：有効な開始文字列が見つかりません。"); return null; }
+        if (eMatches.length === 0) { alert("エラー：有効な終了文字列が見つかりません。"); return null; }
         
         let sIdx = activeIndices['cac-start'] < sMatches.length ? activeIndices['cac-start'] : 0;
         let eIdx = activeIndices['cac-end'] < eMatches.length ? activeIndices['cac-end'] : 0;
@@ -764,20 +837,41 @@
         let cutEndPos = endInclude ? endMatch.end : endMatch.start;
         
         if (cutStartPos >= cutEndPos) {
-            return alert("CACエラー：終了位置が開始位置より前にあります。");
+            alert("エラー：終了位置が開始位置より前にあります。");
+            return null;
         }
         
         saveState();
         let targetText = content.substring(cutStartPos, cutEndPos);
-        let newContent = content.substring(0, cutStartPos) + content.substring(cutEndPos);
-        
-        copyToClipboard(targetText);
-        applyChanges(newContent, `CAC: 切取コピー (${targetText.length}文字)`);
-        alert("CAC完了：指定範囲を切り取り、クリップボードにコピーしました。");
+        return { content, cutStartPos, cutEndPos, targetText };
     }
 
+    function runCAC(doCopy) {
+        let res = executeCutBase();
+        if (!res) return;
+        
+        let newContent = res.content.substring(0, res.cutStartPos) + res.content.substring(res.cutEndPos);
+        if (doCopy) copyToClipboard(res.targetText);
+        
+        let actionName = doCopy ? "CAC (切取＆コピー)" : "C (切取のみ)";
+        applyChanges(newContent, `${actionName}: ${res.targetText.length}文字`);
+        alert(`${actionName} 完了`);
+    }
+
+    function runCAR() {
+        let res = executeCutBase();
+        if (!res) return;
+        
+        let replaceStr = getInputValue('car-replace-in');
+        let newContent = res.content.substring(0, res.cutStartPos) + replaceStr + res.content.substring(res.cutEndPos);
+        
+        applyChanges(newContent, `CAR (切取＆置換): ${res.targetText.length}文字 -> ${replaceStr.length}文字`);
+        alert(`CAR完了：指定範囲を切り取り、新しい文字に置き換えました。`);
+    }
+
+
     // ==========================================
-    // 既存機能・状態管理
+    // 既存機能・状態管理・ジャンプバグ修正
     // ==========================================
     let memos = []; 
     let activeMemoId = null;
@@ -785,13 +879,13 @@
 
     const DELETE_PATTERNS = {
         num: { regex: /[0-9０-９]/g, label: "数字" },
-        sym: { regex: /[\x21-\x2f\x3a-\x40\x5b-\x60\x7b-\x7e]|[！-／：-＠［-｀｛-｝]|[\u2000-\u206F\u2500-\u257F\u25A0-\u25FF\u2190-\u21FF\u2200-\u22FF\u2600-\u26FF\u3000-\u303F]/g, label: "記号" },
+        sym: { regex: /[\x21-\x2f\x3a-\x40\x5b-\x60\x7b-\x7e]|[！-／：-＠［-｀｛-｝]|[\u2000-\u206F\u2500-\u257F\u25A0-\u25FF\u2190-\u21FF\u2200-\u22FF\u2600-\u26FF\u3000-\u303F：・¥￥ー]/g, label: "記号" },
         roma: { regex: /[a-zA-Z]/g, label: "ローマ字" },
         jp: { regex: /[ぁ-んァ-ヶー一-龠]/g, label: "日本語" },
         kan: { regex: /[一-龠]/g, label: "漢字" },
         hira: { regex: /[ぁ-ん]/g, label: "ひらがな" },
         kata: { regex: /[ァ-ヶー]/g, label: "カタカナ" },
-        space: { regex: /[\s\u3000]/g, label: "空白" } // ★タイプ別消去の空白パターンを追加
+        space: { regex: /[\s\u3000]/g, label: "空白" }
     };
 
     window.onload = () => {
@@ -877,7 +971,7 @@
     function saveState() {
         const memo = memos.find(m => m.id === activeMemoId);
         if (!memo) return;
-        memo.undoStack.push({ content: memo.content, history: [...memo.history] });
+        memo.undoStack.push({ content: document.getElementById('editor').value, history: [...memo.history] });
         memo.redoStack = []; updateCtrlButtons();
     }
 
@@ -941,12 +1035,21 @@
         }
     }
 
+    // ★変更: DOMの更新時にカーソル位置を極力維持する
     function applyChanges(newContent, message) {
         const memo = memos.find(m => m.id === activeMemoId);
         const time = new Date().toLocaleTimeString();
         memo.content = newContent;
         memo.history.push(`[${time}] ${message}`);
-        document.getElementById('editor').value = newContent;
+        
+        const editor = document.getElementById('editor');
+        const oldStart = editor.selectionStart;
+        editor.value = newContent;
+        
+        // 文字の増減に関わらず、なるべく元のカーソル位置付近を維持する
+        editor.selectionStart = Math.min(oldStart, newContent.length);
+        editor.selectionEnd = editor.selectionStart;
+        
         updateHistoryUI(); updateCtrlButtons(); onEditorInput();
     }
 
@@ -984,9 +1087,13 @@
 
     function loadFile(e) {
         const file = e.target.files[0];
+        if (!file) return;
         const reader = new FileReader();
         reader.onload = (ev) => {
-            saveState(); document.getElementById('editor').value = ev.target.result;
+            saveState(); 
+            const editor = document.getElementById('editor');
+            editor.value = ev.target.result;
+            editor.selectionStart = editor.selectionEnd = 0; // ファイル読み込み時は先頭へ
             onEditorInput();
         };
         reader.readAsText(file);
@@ -1040,21 +1147,49 @@
 
     function togglePreviewFullscreen() { document.getElementById('preview-container').classList.toggle('fullscreen'); }
 
+    // ★ジャンプバグ対策用変数
+    let savedSelectionStart = 0;
+    let savedSelectionEnd = 0;
+
     function setupEditorEnhancements() {
         const editor = document.getElementById('editor');
         editor.addEventListener('touchstart', function(e) { this.focus(); }, {passive: true});
+        
         editor.addEventListener('keydown', function(e) {
             if (e.key === 'Tab') {
                 e.preventDefault();
+                saveTypingState(); // Tab挿入前に手動で履歴を積む
                 const start = this.selectionStart, end = this.selectionEnd;
                 this.value = this.value.substring(0, start) + "    " + this.value.substring(end);
                 this.selectionStart = this.selectionEnd = start + 4;
                 onEditorInput();
             }
         });
+        
+        // ★ エディタのフォーカスが外れた際に位置を記憶
+        editor.addEventListener('blur', function() {
+            savedSelectionStart = this.selectionStart;
+            savedSelectionEnd = this.selectionEnd;
+        });
+
+        // ★ メインエリアクリック時にエディタへフォーカスを当て、必要ならカーソル位置を復元
+        const workspace = document.querySelector('.workspace');
+        workspace.addEventListener('click', function(e) {
+            if (document.activeElement !== editor) {
+                editor.focus();
+                // 内部処理によってキャレットが先頭にリセットされてしまった場合のみ、直前の位置に戻す
+                setTimeout(() => {
+                    if (editor.selectionStart === 0 && savedSelectionStart > 0) {
+                        editor.selectionStart = savedSelectionStart;
+                        editor.selectionEnd = savedSelectionEnd;
+                    }
+                }, 10);
+            }
+        });
     }
 </script>
 </body>
 </html>
+
 
 ```
