@@ -25,40 +25,54 @@
             overflow: hidden;
             -webkit-user-select: none;
             user-select: none;
+            padding-top: env(safe-area-inset-top); /* セーフエリア対応 */
+            padding-bottom: env(safe-area-inset-bottom);
         }
         
         /* ★ タブエリアの横スクロールと長押し移動対応 */
         .tabs-bar { 
             background: #111; display: flex; align-items: center; 
-            padding: 5px 10px 0; gap: 5px; border-bottom: 1px solid #444;
+            padding: 10px 15px 0; gap: 8px; border-bottom: 1px solid #444; /* paddingを少し広げて見やすく */
             overflow-x: auto; overflow-y: hidden; white-space: nowrap;
             -webkit-overflow-scrolling: touch;
+            min-height: 40px; /* タブバーの最小高さを確保 */
         }
         .tabs-bar::-webkit-scrollbar { display: none; } /* スクロールバー非表示 */
         
         .tab { 
-            padding: 8px 15px; background: #333; color: #888;
-            border-radius: 5px 5px 0 0; cursor: pointer; font-size: 12px; 
-            display: flex; align-items: center; gap: 8px; flex-shrink: 0;
+            padding: 10px 18px; background: #333; color: #888; /* paddingを広げてタップしやすく */
+            border-radius: 6px 6px 0 0; cursor: pointer; font-size: 13px; 
+            display: flex; align-items: center; gap: 10px; flex-shrink: 0;
             transition: opacity 0.2s, background 0.2s;
         }
         .tab.active { 
             background: var(--panel); color: var(--accent); 
             border: 1px solid #444; border-bottom: none;
+            font-weight: bold;
         }
         .tab.dragging { opacity: 0.5; transform: scale(0.95); background: #555; } /* 長押し時のスタイル */
         
-        .btn-add-tab { background: none; border: none; color: #fff; font-size: 20px; cursor: pointer; padding: 0 10px; flex-shrink: 0;}
-        .btn-close-tab { font-size: 10px; color: #888; border: none; background: none; cursor: pointer; }
+        .btn-add-tab { background: none; border: none; color: #fff; font-size: 22px; cursor: pointer; padding: 0 15px; flex-shrink: 0; line-height: 1;}
+        .btn-close-tab { font-size: 12px; color: #888; border: none; background: none; cursor: pointer; padding: 0 5px;}
         .btn-close-tab:hover { color: #ff4444; }
 
         .container { display: flex; flex-grow: 1; overflow: hidden; }
         
+        /* ★ サイドバーをリサイズ時に縮小するように変更 */
         .sidebar { 
-            width: 380px; flex-shrink: 0;
+            width: 380px; 
+            flex-shrink: 1; /* 1に変更して縮小を許可 */
+            min-width: 250px; /* 最小幅を設定 */
             background: var(--panel); border-right: 1px solid #444; 
             display: flex; flex-direction: column; padding: 15px 20px; overflow-y: auto;
         }
+        
+        @media (max-width: 768px) {
+            .container { flex-direction: column; }
+            .sidebar { width: 100%; border-right: none; border-bottom: 1px solid #444; max-height: 40vh; flex-shrink: 0; }
+            .main { min-height: 60vh; }
+        }
+
         h2 { font-size: 16px; margin: 0 0 15px 0; border-left: 4px solid var(--accent); padding-left: 10px; }
         .section-title { font-size: 11px; color: #888; margin: 15px 0 8px; text-transform: uppercase; letter-spacing: 1px; }
         
@@ -120,12 +134,13 @@
         .del-memo-title { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; flex-grow: 1; }
         .del-memo-actions { display: flex; gap: 5px; }
 
-        .main { flex-grow: 1; display: flex; flex-direction: column; padding: 20px; gap: 10px; position: relative; min-width: 0; }
-        .toolbar { display: flex; gap: 10px; flex-shrink: 0; }
+        /* ★ メインエリアは縮小せず残りの幅を確保 */
+        .main { flex-grow: 1; flex-shrink: 0; display: flex; flex-direction: column; padding: 15px 20px; gap: 15px; position: relative; min-width: 300px; }
+        .toolbar { display: flex; gap: 10px; flex-shrink: 0; align-items: center; }
         
         .workspace {
-            flex-grow: 1; display: flex; position: relative; overflow: hidden; border-radius: 4px;
-            background: #111; border: 1px solid #444; 
+            flex-grow: 1; display: flex; position: relative; overflow: hidden; border-radius: 6px;
+            background: #111; border: 1px solid #444; box-shadow: inset 0 2px 10px rgba(0,0,0,0.5);
         }
         .workspace:focus-within { border-color: var(--accent); }
         
@@ -155,13 +170,13 @@
         }
         textarea#editor.highlight-mode { color: transparent !important; caret-color: #fff; }
         
-        .footer { display: flex; gap: 10px; align-items: center; flex-shrink: 0; flex-wrap: wrap; }
-        .btn-secondary { background: #444; color: #fff; padding: 8px 15px; font-size: 12px; }
-        .btn-primary { background: #007bff; color: #fff; padding: 8px 15px; font-size: 12px; }
+        /* ★ フッター（下部ボタンエリア）のゆとり確保 */
+        .footer { display: flex; gap: 12px; align-items: center; flex-shrink: 0; flex-wrap: wrap; padding-bottom: 5px; }
+        .btn-secondary { background: #444; color: #fff; padding: 10px 18px; font-size: 13px; } /* ボタンを少し大きく */
+        .btn-primary { background: #007bff; color: #fff; padding: 10px 18px; font-size: 13px; }
         
         /* ★ 文字サイズコントロール */
-        .font-size-ctrl { display: flex; gap: 5px; align-items: center; background: #222; padding: 4px 8px; border-radius: 4px; }
-        .fs-btn { background: #444; color: #fff; border: none; padding: 2px 8px; font-size: 12px; border-radius: 3px; cursor: pointer; }
+        .font-size-ctrl { display: flex; gap: 5px; align-items: center; background: #222; padding: 6px 10px; border-radius: 6px; }
         .fs-btn:hover { background: var(--accent); color: #000; }
         
         .char-counter-wrap { display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: bold; color: var(--accent); }
@@ -211,6 +226,31 @@
             box-sizing: border-box;
             display: flex;
             flex-direction: column;
+        }
+
+        /* ★ コンテキストメニューのスタイル */
+        .context-menu {
+            position: absolute;
+            background: #2d2d2d;
+            border: 1px solid #555;
+            border-radius: 6px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+            padding: 5px 0;
+            z-index: 9999;
+            display: none;
+            flex-direction: column;
+            min-width: 150px;
+        }
+        .context-menu-item {
+            padding: 10px 15px;
+            color: #ddd;
+            font-size: 13px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .context-menu-item:hover {
+            background: var(--accent);
+            color: #000;
         }
     </style>
 </head>
@@ -400,6 +440,13 @@
 <!-- 削除メモプレビューモーダル -->
 <div id="preview-modal" class="overlay-modal" onclick="this.style.display='none'">
     <div class="preview-popup" id="preview-modal-text"></div>
+</div>
+
+<!-- ★ コンテキストメニュー -->
+<div id="custom-context-menu" class="context-menu">
+    <div class="context-menu-item" id="ctx-copy-func">この関数をコピー</div>
+    <div class="context-menu-item" id="ctx-del-func">この関数を削除</div>
+    <div class="context-menu-item" id="ctx-jump-func">この関数の最後に飛ぶ</div>
 </div>
 
 <script>
@@ -1495,6 +1542,154 @@
                 onEditorInput();
             }
         });
+        
+        // ★ 関数抽出ロジック（カーソル位置から対象のfunctionブロックを特定）
+        function getFunctionBlockAt(text, pos) {
+            // functionキーワードを探すための正規表現
+            const funcRegex = /function\s+([a-zA-Z0-9_]+)\s*\([^)]*\)\s*\{/g;
+            let match;
+            let targetFunc = null;
+            let targetStart = -1;
+            
+            // 全てのfunctionを検索し、posがどの関数内にあるか特定する
+            while ((match = funcRegex.exec(text)) !== null) {
+                let startIdx = match.index;
+                let openBrackets = 0;
+                let endIdx = -1;
+                
+                // '{' から '}' までのブロックを解析
+                for (let i = startIdx + match[0].length - 1; i < text.length; i++) {
+                    if (text[i] === '{') openBrackets++;
+                    if (text[i] === '}') {
+                        openBrackets--;
+                        if (openBrackets === 0) {
+                            endIdx = i + 1;
+                            break;
+                        }
+                    }
+                }
+                
+                if (endIdx !== -1 && pos >= startIdx && pos <= endIdx) {
+                    // カーソル位置がこの関数の範囲内だった場合
+                    targetFunc = text.substring(startIdx, endIdx);
+                    targetStart = startIdx;
+                    return { text: targetFunc, start: targetStart, end: endIdx };
+                }
+            }
+            return null;
+        }
+
+        const ctxMenu = document.getElementById('custom-context-menu');
+        let currentFuncData = null;
+
+        // 右クリック（PC用）または長押し（スマホ・タブレット用）のハンドラ
+        function handleContextMenuEvent(e, clientX, clientY) {
+            const pos = editor.selectionStart;
+            const funcData = getFunctionBlockAt(editor.value, pos);
+
+            if (funcData) {
+                e.preventDefault();
+                currentFuncData = funcData;
+                
+                // メニューの位置を計算
+                let x = clientX;
+                let y = clientY;
+                
+                // 画面端にはみ出さないように調整
+                ctxMenu.style.display = 'flex';
+                const rect = ctxMenu.getBoundingClientRect();
+                if (x + rect.width > window.innerWidth) x = window.innerWidth - rect.width - 10;
+                if (y + rect.height > window.innerHeight) y = window.innerHeight - rect.height - 10;
+                
+                ctxMenu.style.left = x + 'px';
+                ctxMenu.style.top = y + 'px';
+            } else {
+                // 関数内でなければ標準メニューを許可（または何もしない）
+                ctxMenu.style.display = 'none';
+            }
+        }
+
+        // PC右クリック対応
+        editor.addEventListener('contextmenu', function(e) {
+            handleContextMenuEvent(e, e.clientX, e.clientY);
+        });
+
+        // スマホ長押し対応
+        let touchTimer = null;
+        let lastTouch = null;
+        editor.addEventListener('touchstart', function(e) {
+            if (e.touches.length > 1) return;
+            lastTouch = e.touches[0];
+            touchTimer = setTimeout(() => {
+                // 長押し判定後、現在のカーソル位置を更新するために少し待つ
+                setTimeout(() => {
+                   handleContextMenuEvent(e, lastTouch.clientX, lastTouch.clientY); 
+                   if(navigator.vibrate) navigator.vibrate(50);
+                }, 100);
+            }, 600); // 600ms長押し
+        }, {passive: false});
+
+        editor.addEventListener('touchmove', function(e) { clearTimeout(touchTimer); }, {passive: true});
+        editor.addEventListener('touchend', function(e) { clearTimeout(touchTimer); });
+        editor.addEventListener('touchcancel', function(e) { clearTimeout(touchTimer); });
+
+        // メニュー外クリックで閉じる
+        document.addEventListener('click', function(e) {
+            if (!ctxMenu.contains(e.target)) {
+                ctxMenu.style.display = 'none';
+            }
+        });
+        document.addEventListener('touchstart', function(e) {
+            if (!ctxMenu.contains(e.target) && e.target !== editor) {
+                ctxMenu.style.display = 'none';
+            }
+        }, {passive: true});
+
+        // アクション: コピー
+        document.getElementById('ctx-copy-func').addEventListener('click', function() {
+            if (currentFuncData) {
+                copyToClipboard(currentFuncData.text);
+                alert("関数をコピーしました。");
+            }
+            ctxMenu.style.display = 'none';
+        });
+
+        // アクション: 削除
+        document.getElementById('ctx-del-func').addEventListener('click', function() {
+            if (currentFuncData) {
+                saveState();
+                let currentVal = editor.value;
+                let newVal = currentVal.substring(0, currentFuncData.start) + currentVal.substring(currentFuncData.end);
+                applyChanges(newVal, "関数ブロックを削除");
+            }
+            ctxMenu.style.display = 'none';
+        });
+
+        // アクション: 最後に飛ぶ
+        document.getElementById('ctx-jump-func').addEventListener('click', function() {
+            if (currentFuncData) {
+                editor.focus();
+                editor.selectionStart = currentFuncData.end;
+                editor.selectionEnd = currentFuncData.end;
+                
+                // ハイライト表示にスクロール
+                const textBefore = editor.value.substring(0, currentFuncData.end);
+                const lineCount = (textBefore.match(/\n/g) || []).length;
+                const lineHeight = parseFloat(getComputedStyle(editor).lineHeight);
+                editor.scrollTop = (lineCount * lineHeight) - (editor.clientHeight / 2);
+            }
+            ctxMenu.style.display = 'none';
+        });
+        
+        // Typing state helper for tab key
+        function saveTypingState() {
+            const memo = memos.find(m => m.id === activeMemoId);
+            if (memo.undoStack.length === 0 || memo.undoStack[memo.undoStack.length - 1].content !== memo.content) {
+                memo.undoStack.push({ content: memo.content, history: [...memo.history] });
+                memo.redoStack = [];
+                updateCtrlButtons();
+            }
+        }
     }
 </script>
 </body>
