@@ -1,4 +1,3 @@
-```html
 <!DOCTYPE html>
 <html lang="ja">
 <head>
@@ -28,37 +27,51 @@
             user-select: none;
         }
         
+        /* ★ タブエリアの横スクロールと長押し移動対応 */
         .tabs-bar { 
             background: #111; display: flex; align-items: center; 
             padding: 5px 10px 0; gap: 5px; border-bottom: 1px solid #444;
+            overflow-x: auto; overflow-y: hidden; white-space: nowrap;
+            -webkit-overflow-scrolling: touch;
         }
+        .tabs-bar::-webkit-scrollbar { display: none; } /* スクロールバー非表示 */
+        
         .tab { 
             padding: 8px 15px; background: #333; color: #888;
             border-radius: 5px 5px 0 0; cursor: pointer; font-size: 12px; 
-            display: flex; align-items: center; gap: 8px;
+            display: flex; align-items: center; gap: 8px; flex-shrink: 0;
+            transition: opacity 0.2s, background 0.2s;
         }
         .tab.active { 
             background: var(--panel); color: var(--accent); 
             border: 1px solid #444; border-bottom: none;
         }
-        .btn-add-tab { background: none; border: none; color: #fff; font-size: 20px; cursor: pointer; padding: 0 10px; }
+        .tab.dragging { opacity: 0.5; transform: scale(0.95); background: #555; } /* 長押し時のスタイル */
+        
+        .btn-add-tab { background: none; border: none; color: #fff; font-size: 20px; cursor: pointer; padding: 0 10px; flex-shrink: 0;}
         .btn-close-tab { font-size: 10px; color: #888; border: none; background: none; cursor: pointer; }
         .btn-close-tab:hover { color: #ff4444; }
 
         .container { display: flex; flex-grow: 1; overflow: hidden; }
         
         .sidebar { 
-            width: 380px; 
+            width: 380px; flex-shrink: 0;
             background: var(--panel); border-right: 1px solid #444; 
             display: flex; flex-direction: column; padding: 15px 20px; overflow-y: auto;
         }
         h2 { font-size: 16px; margin: 0 0 15px 0; border-left: 4px solid var(--accent); padding-left: 10px; }
         .section-title { font-size: 11px; color: #888; margin: 15px 0 8px; text-transform: uppercase; letter-spacing: 1px; }
         
+        /* Smart Input Group */
         .smart-input-group { background: #1a1a1a; border: 1px solid #444; border-radius: 4px; padding: 6px; margin-bottom: 5px; }
         .smart-input-group:focus-within { border-color: var(--accent); }
         .smart-input-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; }
-        .smart-input-label { font-size: 10px; color: #aaa; font-weight: bold; }
+        .smart-input-label { font-size: 10px; color: #aaa; font-weight: bold; display: flex; align-items: center; gap: 5px; }
+        
+        /* ★ 拡大ボタン追加 */
+        .expand-btn { background: #444; color: var(--accent); border: none; border-radius: 3px; font-size: 10px; cursor: pointer; padding: 2px 5px; }
+        .expand-btn:hover { background: #666; }
+
         .mode-switch { display: flex; gap: 2px; }
         .btn-mode { background: #333; color: #888; font-size: 9px; padding: 3px 8px; border-radius: 2px; border: none; cursor: pointer; }
         .btn-mode.active { background: #555; color: #fff; }
@@ -100,9 +113,15 @@
             border: 1px solid #333; margin-bottom: 10px;
         }
         .history-item { border-bottom: 1px solid #222; padding: 5px 0; color: #aaa; }
+        
+        /* 削除済みメモアイテム */
+        .del-memo-item { display: flex; justify-content: space-between; align-items: center; cursor: pointer; }
+        .del-memo-item:hover { background: #222; }
+        .del-memo-title { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; flex-grow: 1; }
+        .del-memo-actions { display: flex; gap: 5px; }
 
-        .main { flex-grow: 1; display: flex; flex-direction: column; padding: 20px; gap: 10px; position: relative; }
-        .toolbar { display: flex; gap: 10px; }
+        .main { flex-grow: 1; display: flex; flex-direction: column; padding: 20px; gap: 10px; position: relative; min-width: 0; }
+        .toolbar { display: flex; gap: 10px; flex-shrink: 0; }
         
         .workspace {
             flex-grow: 1; display: flex; position: relative; overflow: hidden; border-radius: 4px;
@@ -114,6 +133,7 @@
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
             z-index: 1; pointer-events: none; overflow: hidden; background: #111;
         }
+        /* ★ 文字サイズ可変のための対応 */
         .highlights {
             font-family: 'Consolas', monospace; font-size: 16px; line-height: 1.6; padding: 15px; 
             box-sizing: border-box; white-space: pre-wrap; word-wrap: break-word;
@@ -128,34 +148,77 @@
         textarea#editor { 
             position: absolute; top: 0; left: 0; width: 100%; height: 100%; box-sizing: border-box;
             background: transparent !important; z-index: 2; 
-            color: #d4d4d4; font-family: 'Consolas', monospace; font-size: 16px !important; line-height: 1.6; padding: 15px; 
+            color: #d4d4d4; font-family: 'Consolas', monospace; font-size: 16px; line-height: 1.6; padding: 15px; 
             border: none; resize: none; transition: color 0.1s;
             -webkit-user-select: text !important; user-select: text !important;
             -webkit-tap-highlight-color: transparent; touch-action: manipulation; outline: none;
         }
         textarea#editor.highlight-mode { color: transparent !important; caret-color: #fff; }
         
-        .footer { display: flex; gap: 10px; align-items: center; }
+        .footer { display: flex; gap: 10px; align-items: center; flex-shrink: 0; flex-wrap: wrap; }
         .btn-secondary { background: #444; color: #fff; padding: 8px 15px; font-size: 12px; }
         .btn-primary { background: #007bff; color: #fff; padding: 8px 15px; font-size: 12px; }
         
-        .char-counter-wrap { display: flex; align-items: center; gap: 8px; margin-left: 10px; font-size: 12px; font-weight: bold; color: var(--accent); }
+        /* ★ 文字サイズコントロール */
+        .font-size-ctrl { display: flex; gap: 5px; align-items: center; background: #222; padding: 4px 8px; border-radius: 4px; }
+        .fs-btn { background: #444; color: #fff; border: none; padding: 2px 8px; font-size: 12px; border-radius: 3px; cursor: pointer; }
+        .fs-btn:hover { background: var(--accent); color: #000; }
+        
+        .char-counter-wrap { display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: bold; color: var(--accent); }
         .char-counter-wrap label { font-size: 10px; color: #aaa; display: flex; align-items: center; gap: 3px; cursor: pointer; font-weight: normal; }
         
-        .status-bar { font-size: 10px; color: #666; text-align: right; }
-        .restore-btn { background: #555; color: #fff; font-size: 9px; padding: 2px 5px; border-radius: 3px; float: right; }
+        .status-bar { font-size: 10px; color: #666; text-align: right; flex-grow: 1; }
+        .restore-btn { background: #555; color: #fff; font-size: 9px; padding: 3px 6px; border-radius: 3px; }
         .restore-btn:hover { background: var(--accent); color: #000; }
 
         #preview-container { display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: #fff; z-index: 50; flex-direction: column; }
         #preview-container.fullscreen { position: fixed !important; top: 0; left: 0; width: 100vw !important; height: 100vh !important; z-index: 99999 !important; border-radius: 0; margin: 0; padding: 0; }
         .preview-controls { position: absolute; top: 10px; right: 20px; z-index: 60; display: flex; gap: 10px; }
         .preview-controls button { box-shadow: 0 2px 5px rgba(0,0,0,0.5); font-size: 12px; }
+
+        /* ★ 拡大モーダル & プレビューモーダル */
+        .overlay-modal {
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.8);
+            z-index: 9999; display: none; flex-direction: column; padding: 20px; box-sizing: border-box;
+            backdrop-filter: blur(5px);
+        }
+        .expand-content { flex-grow: 1; display: flex; flex-direction: column; gap: 10px; max-width: 800px; margin: 0 auto; width: 100%; }
+        .expand-content textarea {
+            flex-grow: 1; background: #111; color: #fff; border: 2px solid var(--accent);
+            padding: 20px; font-size: 16px; border-radius: 8px; resize: none; font-family: 'Consolas', monospace;
+            -webkit-user-select: text; user-select: text;
+        }
+        .expand-content textarea:focus { outline: none; }
+        .expand-header { display: flex; justify-content: space-between; color: var(--accent); font-weight: bold; }
+        
+        .preview-popup {
+            background: #222; border: 1px solid #555; padding: 15px; border-radius: 8px;
+            color: #ccc; font-size: 12px; max-width: 90%; max-height: 80%; overflow-y: auto;
+            margin: auto; white-space: pre-wrap; font-family: monospace; box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+
+        /* ★ エディタ全画面モード */
+        .main.fullscreen-mode {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: 10000;
+            background: var(--bg);
+            margin: 0;
+            padding: 15px;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+        }
     </style>
 </head>
 <body>
 
 <div class="tabs-bar" id="tabs-bar">
-    <button class="btn-add-tab" onclick="createNewMemo()">+</button>
+    <!-- タブはJSで描画 -->
+    <button class="btn-add-tab" onclick="createNewMemo()">＋</button>
 </div>
 
 <div class="container">
@@ -173,6 +236,7 @@
             <span class="count-disp" id="search-count">0/0</span>
             <button class="nav-btn" onclick="navIndex(-1, 'search')">▲</button>
             <button class="nav-btn" onclick="navIndex(1, 'search')">▼</button>
+            <button class="nav-btn" onclick="copyAllSearchMatches()" style="margin-left: 10px; background: var(--accent); color: #000; font-weight: bold;">全てコピー</button>
         </div>
 
         <!-- CAC / C / CAR (CUT & REPLACE) -->
@@ -204,7 +268,10 @@
         <!-- CAR 置き換え文字入力 -->
         <div class="smart-input-group" id="car-replace-in">
             <div class="smart-input-header">
-                <span class="smart-input-label">CARの置き換え文字</span>
+                <span class="smart-input-label">
+                    CARの置き換え文字
+                    <button class="expand-btn" onclick="openExpandInput('car-replace-in', 'CARの置き換え文字')">⛶</button>
+                </span>
                 <div class="mode-switch">
                     <input type="file" id="car-file-input" style="display:none;" onchange="loadCarFile(event)">
                     <button type="button" class="btn-mode" style="background:#444;" onclick="document.getElementById('car-file-input').click()">📁</button>
@@ -230,7 +297,7 @@
         <button class="btn-exe pr-theme" onclick="runPR()">PR 実行 (＜＞の対象を交換)</button>
 
         <!-- 一括置換 (REWRITE) -->
-        <div class="section-title">一括置換 (REWRITE)</div>
+        <div class="section-title">一括置換 (REWRITE) ※保持置換対応</div>
         <div id="replace-find-container"></div>
         <div class="nav-ui">
             <span class="count-disp" id="replace-find-count">0/0</span>
@@ -271,7 +338,7 @@
         <div class="section-title">操作履歴</div>
         <div id="history" class="history-area"><div style="color:#555">履歴はありません</div></div>
 
-        <div class="section-title">削除済みメモ (最大10件)</div>
+        <div class="section-title">削除済みメモ (長押しでプレビュー)</div>
         <div id="deleted-memos" class="history-area"><div style="color:#555">削除履歴はありません</div></div>
     </div>
 
@@ -280,6 +347,7 @@
             <input type="file" id="load-file" style="display:none" onchange="loadFile(event)">
             <button class="btn-secondary" onclick="document.getElementById('load-file').click()">読込</button>
             <input type="text" id="memo-title" placeholder="メモのタイトル" style="flex-grow:1; max-width: 300px; background: #222; border: 1px solid #444; color: #fff; padding: 5px 10px; border-radius: 4px;" oninput="updateTabTitle()">
+            <button class="btn-secondary" style="margin-left:auto;" onclick="toggleEditorFullscreen()" id="btn-fullscreen">全画面</button>
         </div>
 
         <div class="workspace">
@@ -298,19 +366,40 @@
         </div>
         
         <div class="footer">
+            <div class="font-size-ctrl">
+                <button class="fs-btn" onclick="changeFontSize(-1)">A-</button>
+                <span id="font-size-disp" style="font-size:10px; width:30px; text-align:center;">16px</span>
+                <button class="fs-btn" onclick="changeFontSize(1)">A+</button>
+            </div>
             <button class="btn-primary" onclick="download('text')">テキスト保存</button>
             <button class="btn-secondary" onclick="download('memo')">履歴保存</button>
-            <button class="rep-theme" style="padding: 8px 15px; font-size: 12px; margin-left: 10px;" onclick="runHTML()">▶ コード実行</button>
+            <button class="rep-theme" style="padding: 8px 15px; font-size: 12px;" onclick="runHTML()">▶ 実行</button>
             
             <div class="char-counter-wrap">
                 <span id="char-count">0文字</span>
                 <label><input type="checkbox" id="ignore-space-chk" onchange="updateCharCount()"> 空白除外</label>
             </div>
 
-            <div style="flex-grow:1"></div>
             <div id="save-status" class="status-bar">保存済み</div>
         </div>
     </div>
+</div>
+
+<!-- 拡大入力モーダル -->
+<div id="expand-modal" class="overlay-modal">
+    <div class="expand-content">
+        <div class="expand-header">
+            <span id="expand-modal-title">拡大入力</span>
+            <button class="btn-secondary" style="background:#ff4444; padding:5px 15px;" onclick="closeExpandInput(false)">キャンセル</button>
+        </div>
+        <textarea id="expand-textarea"></textarea>
+        <button class="btn-primary" style="padding:15px; font-size:16px;" onclick="closeExpandInput(true)">完了 (反映する)</button>
+    </div>
+</div>
+
+<!-- 削除メモプレビューモーダル -->
+<div id="preview-modal" class="overlay-modal" onclick="this.style.display='none'">
+    <div class="preview-popup" id="preview-modal-text"></div>
 </div>
 
 <script>
@@ -345,7 +434,10 @@
         const create = (id, label, ph) => `
         <div class="smart-input-group" id="${id}" onfocusin="handleFocusIn('${id}')">
             <div class="smart-input-header">
-                <span class="smart-input-label">${label}</span>
+                <span class="smart-input-label">
+                    ${label}
+                    <button class="expand-btn" onclick="openExpandInput('${id}', '${label.split(' ')[0]}')">⛶</button>
+                </span>
                 <div class="mode-switch">
                     <button type="button" class="btn-mode word active" onclick="switchInputMode('${id}', 'word')">単語</button>
                     <button type="button" class="btn-mode text" onclick="switchInputMode('${id}', 'text')">文章</button>
@@ -357,14 +449,14 @@
             </div>
         </div>`;
 
-        document.getElementById('search-container').innerHTML = create('search-in', '検索/PA (例:？記号＆あ？）)', '探す・TSM(あ〜。)');
+        document.getElementById('search-container').innerHTML = create('search-in', '検索 (PA/TSM/OPT)', '探す・TSM(あ〜。)');
         document.getElementById('cac-start-container').innerHTML = create('cac-start-in', '始まりの文字', '開始地点');
         document.getElementById('cac-end-container').innerHTML = create('cac-end-in', '終わりの文字', '終了地点');
         document.getElementById('pr-container').innerHTML = create('pr-in', 'PR対象 (例: 色＜？青？＞＜黄＞)', '対象を指定 (＜＞は交換マーカー)');
-        document.getElementById('replace-find-container').innerHTML = create('replace-find-in', '探す文字 (PA/TSM/OPT対応)', '探す文字列 (例: あ＃2＆？漢字？＃）う)');
-        document.getElementById('replace-to-container').innerHTML = create('replace-to-in', '変える文字', '変える文字列');
-        document.getElementById('del-container-1').innerHTML = create('del-in-1', '消す文字 1 (PA/TSM対応)', '消去する文字列');
-        document.getElementById('del-container-2').innerHTML = create('del-in-2', '消す文字 2 (PA/TSM対応)', '消去する文字列');
+        document.getElementById('replace-find-container').innerHTML = create('replace-find-in', '探す文字 (保持置換対応)', '探す文字列 (例: ＠？日本語？＠）)');
+        document.getElementById('replace-to-container').innerHTML = create('replace-to-in', '変える文字', '変える文字列 (例: ＠？日本語？＠）)');
+        document.getElementById('del-container-1').innerHTML = create('del-in-1', '消す文字 1', '消去する文字列');
+        document.getElementById('del-container-2').innerHTML = create('del-in-2', '消す文字 2', '消去する文字列');
     }
 
     function getInputValue(id) {
@@ -419,11 +511,31 @@
         const file = e.target.files[0];
         if (!file) return;
         const reader = new FileReader();
-        reader.onload = (ev) => {
-            setInputValue('car-replace-in', ev.target.result);
-        };
+        reader.onload = (ev) => setInputValue('car-replace-in', ev.target.result);
         reader.readAsText(file);
         e.target.value = "";
+    }
+
+    // ==========================================
+    // ★ 拡大入力モーダル
+    // ==========================================
+    let currentExpandId = null;
+    function openExpandInput(id, title) {
+        currentExpandId = id;
+        document.getElementById('expand-modal-title').innerText = title + " (拡大編集)";
+        document.getElementById('expand-textarea').value = getInputValue(id);
+        document.getElementById('expand-modal').style.display = 'flex';
+        setTimeout(() => document.getElementById('expand-textarea').focus(), 100);
+    }
+    
+    function closeExpandInput(save) {
+        if (save && currentExpandId) {
+            let val = document.getElementById('expand-textarea').value;
+            setInputValue(currentExpandId, val);
+            handleSmartInput(currentExpandId);
+        }
+        document.getElementById('expand-modal').style.display = 'none';
+        currentExpandId = null;
     }
 
     // ==========================================
@@ -431,7 +543,7 @@
     // ==========================================
     const PATTERNS_PA = {
         '数字': '0-9０-９',
-        '記号': '\\x21-\\x2f\\x3a-\\x40\\x5b-\\x60\\x7b-\\x7e！-／：-＠［-｀｛-｝\u2000-\u206F\u2500-\u257F\u25A0-\u25FF\u2190-\u21FF\u2200-\u22FF\u2600-\u26FF\u3000-\u303F：・¥￥ー', // 追加分含む
+        '記号': '\\x21-\\x2f\\x3a-\\x40\\x5b-\\x60\\x7b-\\x7e！-／：-＠［-｀｛-｝\u2000-\u206F\u2500-\u257F\u25A0-\u25FF\u2190-\u21FF\u2200-\u22FF\u2600-\u26FF\u3000-\u303F：・¥￥ー',
         'ローマ字': 'a-zA-Zａ-ｚＡ-Ｚ',
         '日本語': 'ぁ-んァ-ヶー一-龠',
         '漢字': '一-龠',
@@ -470,7 +582,7 @@
                 } else if (p.startsWith('？') && p.endsWith('？）')) {
                     finalTokens.push({ type: 'pa', text: p, isSwap: tok.type === 'swap' });
                 } else if (p.startsWith('＃') && p.endsWith('＃）')) {
-                    finalTokens.push({ type: 'opt', text: p, isSwap: tok.type === 'swap' }); // ★OPT追加
+                    finalTokens.push({ type: 'opt', text: p, isSwap: tok.type === 'swap' }); 
                 } else {
                     finalTokens.push({ type: 'text', text: p, isSwap: tok.type === 'swap' });
                 }
@@ -489,11 +601,10 @@
         let types = innerStr.split('＆');
         let charClass = "";
         for (let t of types) {
-            let cleanT = t.replace(/^？(.*)？$/, '$1'); // ネスト対応
+            let cleanT = t.replace(/^？(.*)？$/, '$1'); 
             if (PATTERNS_PA[cleanT]) {
                 charClass += PATTERNS_PA[cleanT];
             } else {
-                // 普通の文字もエスケープして許容する
                 charClass += escapeRegExp(cleanT);
             }
         }
@@ -528,7 +639,7 @@
                 let inner = tok.text.substring(1, tok.text.length - 2); 
                 let { charClass, negLookahead } = parseInnerClass(inner);
                 if (charClass) {
-                    partRegex = `(?:${negLookahead}[${charClass}])*`; // 0回以上（無視/複数）
+                    partRegex = `(?:${negLookahead}[${charClass}])*`; 
                 } else {
                     partRegex = escapeRegExp(tok.text);
                 }
@@ -555,7 +666,7 @@
                 start: match.index, 
                 end: match.index + match[0].length, 
                 text: match[0],
-                groups: match, 
+                groups: [...match], 
                 tokens: tokens 
             });
         }
@@ -688,9 +799,9 @@
         }
     }
 
+    // ★ エディタタップ時のトグルと、カーソルジャンプ問題の解決
     editorEl.addEventListener('click', function(e) {
         if (!hlContext) return; 
-        
         let pos = this.selectionStart;
         if (this.selectionStart !== this.selectionEnd) return; 
         
@@ -721,9 +832,22 @@
         document.getElementById('char-count').innerText = text.length + '文字';
     }
 
-    // ★ Undo/Redo用のデバウンストラッキング
+    // ★ Undo/Redo用のデバウンストラッキング（文字入力もしっかり記録）
     let typingTimer;
+    let isTyping = false;
+
     function onEditorInput() {
+        const memo = memos.find(m => m.id === activeMemoId);
+        
+        if (!isTyping) {
+            isTyping = true;
+            if (memo.undoStack.length === 0 || memo.undoStack[memo.undoStack.length - 1].content !== memo.content) {
+                memo.undoStack.push({ content: memo.content, history: [...memo.history] });
+                memo.redoStack = [];
+                updateCtrlButtons();
+            }
+        }
+        
         clearExcludes(); 
         autoSave();
         updateHighlight();
@@ -731,26 +855,72 @@
         
         clearTimeout(typingTimer);
         typingTimer = setTimeout(() => {
-            saveTypingState();
+            isTyping = false;
         }, 800);
-    }
-    
-    function saveTypingState() {
-        const memo = memos.find(m => m.id === activeMemoId);
-        if (!memo) return;
-        // 変更があればスタックに積む
-        if (memo.undoStack.length === 0 || memo.undoStack[memo.undoStack.length - 1].content !== memo.content) {
-            memo.undoStack.push({ content: memo.content, history: [...memo.history] });
-            memo.redoStack = [];
-            updateCtrlButtons();
-        }
     }
 
     // ==========================================
-    // 実行ロジック
+    // 実行ロジック (保持置換対応)
     // ==========================================
     
-    // PR: キャプチャグループの順序入れ替え
+    // ★ 保持置換 (＠...＠）) を適用する関数
+    function applyKeepReplace(replaceVal, tokens, matchGroups) {
+        let atRegex = /＠(.*?)＠）/g;
+        let occurrenceCount = {};
+        
+        return replaceVal.replace(atRegex, (match, inner) => {
+            if (!occurrenceCount[inner]) occurrenceCount[inner] = 0;
+            let targetOccurrence = occurrenceCount[inner];
+            occurrenceCount[inner]++;
+            
+            let currentOccurrence = 0;
+            let idx = -1;
+            for (let i = 0; i < tokens.length; i++) {
+                if (tokens[i].text === inner) {
+                    if (currentOccurrence === targetOccurrence) {
+                        idx = i;
+                        break;
+                    }
+                    currentOccurrence++;
+                }
+            }
+            
+            if (idx !== -1 && matchGroups[idx + 1] !== undefined) {
+                return matchGroups[idx + 1];
+            }
+            return match; 
+        });
+    }
+
+    // 一括置換
+    function runReplace() {
+        const findVal = getInputValue('replace-find-in');
+        const replaceVal = getInputValue('replace-to-in');
+        let content = document.getElementById('editor').value;
+
+        if (!findVal) return alert("探す単語を入力してください");
+        
+        let matches = getMatches(content, findVal);
+        let validMatches = matches.filter(m => !excludedMatchKeys['replace-find'].has(`${m.start}_${m.end}`));
+
+        if (validMatches.length > 0) {
+            saveState();
+            // 後ろから置換してインデックス維持
+            for (let i = validMatches.length - 1; i >= 0; i--) {
+                let m = validMatches[i];
+                // ★ 保持置換を適用
+                let finalReplaceVal = applyKeepReplace(replaceVal, m.tokens, m.groups);
+                content = content.substring(0, m.start) + finalReplaceVal + content.substring(m.end);
+            }
+            applyChanges(content, `置換: 「${findVal}」→「${replaceVal}」`);
+            setInputValue('replace-find-in', "");
+            setInputValue('replace-to-in', "");
+        } else {
+            alert("見つかりませんでした");
+        }
+    }
+
+    // PR
     function runPR() {
         let keyword = getInputValue('pr-in');
         if (!keyword) return alert("PRエラー：交換対象を入力してください。");
@@ -800,7 +970,7 @@
         }
     }
 
-    // CAC / C / CAR 共通基盤
+    // CAC / C / CAR
     function copyToClipboard(text) {
         const ta = document.createElement('textarea');
         ta.value = text; ta.style.position = 'fixed'; ta.style.left = '-9999px';
@@ -809,7 +979,7 @@
         document.body.removeChild(ta);
     }
 
-    function executeCutBase(onSuccess) {
+    function executeCutBase() {
         let content = document.getElementById('editor').value;
         let startStr = getInputValue('cac-start-in');
         let endStr = getInputValue('cac-end-in');
@@ -821,8 +991,8 @@
         let sMatches = sMatchesAll.filter(m => !excludedMatchKeys['cac-start'].has(`${m.start}_${m.end}`));
         let eMatches = eMatchesAll.filter(m => !excludedMatchKeys['cac-end'].has(`${m.start}_${m.end}`));
         
-        if (sMatches.length === 0) { alert("エラー：有効な開始文字列が見つかりません。"); return null; }
-        if (eMatches.length === 0) { alert("エラー：有効な終了文字列が見つかりません。"); return null; }
+        if (sMatches.length === 0) { alert("エラー：開始文字列が見つかりません。"); return null; }
+        if (eMatches.length === 0) { alert("エラー：終了文字列が見つかりません。"); return null; }
         
         let sIdx = activeIndices['cac-start'] < sMatches.length ? activeIndices['cac-start'] : 0;
         let eIdx = activeIndices['cac-end'] < eMatches.length ? activeIndices['cac-end'] : 0;
@@ -866,12 +1036,11 @@
         let newContent = res.content.substring(0, res.cutStartPos) + replaceStr + res.content.substring(res.cutEndPos);
         
         applyChanges(newContent, `CAR (切取＆置換): ${res.targetText.length}文字 -> ${replaceStr.length}文字`);
-        alert(`CAR完了：指定範囲を切り取り、新しい文字に置き換えました。`);
+        alert(`CAR完了：指定範囲を新しい文字に置き換えました。`);
     }
 
-
     // ==========================================
-    // 既存機能・状態管理・ジャンプバグ修正
+    // 既存機能・状態管理・文字サイズ等
     // ==========================================
     let memos = []; 
     let activeMemoId = null;
@@ -908,9 +1077,15 @@
 
     function createNewMemo() {
         const id = Date.now();
-        const newMemo = { id: id, title: "新規メモ", content: "", history: [], undoStack: [], redoStack: [] };
+        const newMemo = { id: id, title: "新規メモ", content: "", fontSize: 16, history: [], undoStack: [], redoStack: [] };
         memos.push(newMemo); activeMemoId = id;
         renderTabs(); loadActiveMemo(); autoSave();
+        
+        // ★新規作成時に右端へスクロール
+        setTimeout(() => {
+            const tabsBar = document.getElementById('tabs-bar');
+            tabsBar.scrollLeft = tabsBar.scrollWidth;
+        }, 50);
     }
 
     function loadActiveMemo() {
@@ -918,11 +1093,31 @@
         if (!memo) return;
         document.getElementById('editor').value = memo.content;
         document.getElementById('memo-title').value = memo.title;
+        applyFontSize(); // ★ フォントサイズ適用
         updateHistoryUI(); updateCtrlButtons();
         updateCharCount();
         clearExcludes();
         if (document.getElementById('preview-container').style.display === 'flex') endTest();
         updateHighlight();
+    }
+    
+    // ★ 文字サイズ変更ロジック
+    function changeFontSize(dir) {
+        const memo = memos.find(m => m.id === activeMemoId);
+        if (!memo) return;
+        if (!memo.fontSize) memo.fontSize = 16;
+        memo.fontSize += dir * 2;
+        if (memo.fontSize < 10) memo.fontSize = 10;
+        if (memo.fontSize > 48) memo.fontSize = 48;
+        applyFontSize();
+        autoSave();
+    }
+    function applyFontSize() {
+        const memo = memos.find(m => m.id === activeMemoId);
+        let fs = (memo && memo.fontSize) ? memo.fontSize : 16;
+        document.getElementById('editor').style.fontSize = fs + 'px';
+        document.getElementById('highlights').style.fontSize = fs + 'px';
+        document.getElementById('font-size-disp').innerText = fs + 'px';
     }
 
     function renderTabs() {
@@ -933,10 +1128,77 @@
         memos.forEach(memo => {
             const tab = document.createElement('div');
             tab.className = `tab ${memo.id === activeMemoId ? 'active' : ''}`;
-            tab.onclick = () => switchMemo(memo.id);
-            tab.innerHTML = `<span>${memo.title || '無題'}</span><button class="btn-close-tab" onclick="closeTab(event, ${memo.id})">×</button>`;
+            tab.dataset.id = memo.id;
+            tab.innerHTML = `<span style="pointer-events:none;">${memo.title || '無題'}</span><button class="btn-close-tab" onclick="closeTab(event, ${memo.id})">×</button>`;
+            
+            // タップ切替
+            tab.addEventListener('click', (e) => {
+                if (e.target.tagName !== 'BUTTON') switchMemo(memo.id);
+            });
+            
+            // ★ 長押しでの移動ロジック
+            addTabDnD(tab, memo.id);
+            
             bar.insertBefore(tab, addButton);
         });
+    }
+    
+    // ★ タブの長押しドラッグ＆ドロップ実装
+    let draggedTab = null;
+    let tabTouchTimer = null;
+    function addTabDnD(tab, memoId) {
+        tab.addEventListener('touchstart', e => {
+            if(e.target.tagName === 'BUTTON') return;
+            tabTouchTimer = setTimeout(() => {
+                draggedTab = tab;
+                tab.classList.add('dragging');
+                if(navigator.vibrate) navigator.vibrate(30);
+            }, 500); 
+        }, {passive: true});
+
+        tab.addEventListener('touchmove', e => {
+            if (!draggedTab) { clearTimeout(tabTouchTimer); return; }
+            e.preventDefault(); 
+            const touch = e.touches[0];
+            const target = document.elementFromPoint(touch.clientX, touch.clientY);
+            
+            if (target && target.closest('.tab') && target.closest('.tab') !== draggedTab) {
+                const targetTab = target.closest('.tab');
+                const tabsContainer = document.getElementById('tabs-bar');
+                const allTabs = Array.from(tabsContainer.querySelectorAll('.tab'));
+                const draggedIdx = allTabs.indexOf(draggedTab);
+                const targetIdx = allTabs.indexOf(targetTab);
+                
+                if (draggedIdx < targetIdx) targetTab.after(draggedTab);
+                else targetTab.before(draggedTab);
+            }
+        }, {passive: false});
+
+        tab.addEventListener('touchend', e => {
+            clearTimeout(tabTouchTimer);
+            if (draggedTab) {
+                draggedTab.classList.remove('dragging');
+                draggedTab = null;
+                reorderMemosFromDOM();
+            }
+        });
+        tab.addEventListener('touchcancel', e => {
+            clearTimeout(tabTouchTimer);
+            if (draggedTab) { draggedTab.classList.remove('dragging'); draggedTab = null; }
+        });
+    }
+
+    function reorderMemosFromDOM() {
+        const newMemos = [];
+        document.querySelectorAll('.tab').forEach(tab => {
+            const id = parseInt(tab.dataset.id);
+            const memo = memos.find(m => m.id === id);
+            if (memo) newMemos.push(memo);
+        });
+        if(newMemos.length === memos.length) {
+            memos = newMemos;
+            autoSave();
+        }
     }
 
     function switchMemo(id) { activeMemoId = id; renderTabs(); loadActiveMemo(); }
@@ -948,7 +1210,7 @@
         if (targetIndex !== -1) {
             const deleted = memos.splice(targetIndex, 1)[0];
             deletedMemos.unshift(deleted);
-            if (deletedMemos.length > 10) deletedMemos.pop();
+            if (deletedMemos.length > 20) deletedMemos.pop();
             saveDeletedStates(); updateDeletedUI();
         }
         if (activeMemoId === id) activeMemoId = memos[0].id;
@@ -973,6 +1235,7 @@
         if (!memo) return;
         memo.undoStack.push({ content: document.getElementById('editor').value, history: [...memo.history] });
         memo.redoStack = []; updateCtrlButtons();
+        isTyping = false;
     }
 
     function runDelete() {
@@ -1011,31 +1274,7 @@
         else { memo.undoStack.pop(); alert("対象が見つかりません"); }
     }
 
-    function runReplace() {
-        const findVal = getInputValue('replace-find-in');
-        const replaceVal = getInputValue('replace-to-in');
-        let content = document.getElementById('editor').value;
-
-        if (!findVal) return alert("探す単語を入力してください");
-        
-        let matches = getMatches(content, findVal);
-        let validMatches = matches.filter(m => !excludedMatchKeys['replace-find'].has(`${m.start}_${m.end}`));
-
-        if (validMatches.length > 0) {
-            saveState();
-            for (let i = validMatches.length - 1; i >= 0; i--) {
-                let m = validMatches[i];
-                content = content.substring(0, m.start) + replaceVal + content.substring(m.end);
-            }
-            applyChanges(content, `置換: 「${findVal}」→「${replaceVal}」`);
-            setInputValue('replace-find-in', "");
-            setInputValue('replace-to-in', "");
-        } else {
-            alert("見つかりませんでした");
-        }
-    }
-
-    // ★変更: DOMの更新時にカーソル位置を極力維持する
+    // ★ DOM更新時にカーソル位置を極力維持する
     function applyChanges(newContent, message) {
         const memo = memos.find(m => m.id === activeMemoId);
         const time = new Date().toLocaleTimeString();
@@ -1046,7 +1285,7 @@
         const oldStart = editor.selectionStart;
         editor.value = newContent;
         
-        // 文字の増減に関わらず、なるべく元のカーソル位置付近を維持する
+        // 文字の増減に関わらず、元のカーソル位置付近を維持
         editor.selectionStart = Math.min(oldStart, newContent.length);
         editor.selectionEnd = editor.selectionStart;
         
@@ -1056,18 +1295,20 @@
     function undo() {
         const memo = memos.find(m => m.id === activeMemoId);
         if (!memo || memo.undoStack.length === 0) return;
-        memo.redoStack.push({ content: memo.content, history: [...memo.history] });
+        memo.redoStack.push({ content: document.getElementById('editor').value, history: [...memo.history] });
         const last = memo.undoStack.pop();
         memo.content = last.content; memo.history = last.history;
+        isTyping = false;
         loadActiveMemo(); autoSave();
     }
 
     function redo() {
         const memo = memos.find(m => m.id === activeMemoId);
         if (!memo || memo.redoStack.length === 0) return;
-        memo.undoStack.push({ content: memo.content, history: [...memo.history] });
+        memo.undoStack.push({ content: document.getElementById('editor').value, history: [...memo.history] });
         const next = memo.redoStack.pop();
         memo.content = next.content; memo.history = next.history;
+        isTyping = false;
         loadActiveMemo(); autoSave();
     }
 
@@ -1093,7 +1334,7 @@
             saveState(); 
             const editor = document.getElementById('editor');
             editor.value = ev.target.result;
-            editor.selectionStart = editor.selectionEnd = 0; // ファイル読み込み時は先頭へ
+            editor.selectionStart = editor.selectionEnd = 0; 
             onEditorInput();
         };
         reader.readAsText(file);
@@ -1108,6 +1349,29 @@
         a.href = URL.createObjectURL(blob); a.download = name; a.click();
     }
 
+    // ★ 削除済みメモの拡張 (完全削除・プレビュー)
+    function updateDeletedUI() {
+        const container = document.getElementById('deleted-memos');
+        if (deletedMemos.length === 0) { container.innerHTML = '<div style="color:#555">削除履歴はありません</div>'; return; }
+        
+        container.innerHTML = deletedMemos.map(memo => `
+            <div class="history-item del-memo-item" data-id="${memo.id}">
+                <div class="del-memo-title">${memo.title || '無題'}</div>
+                <div class="del-memo-actions">
+                    <button class="restore-btn" onclick="restoreMemo(${memo.id})">復元</button>
+                    <button class="restore-btn" style="background:#ff4444;" onclick="permanentlyDeleteMemo(${memo.id})">削除</button>
+                </div>
+            </div>
+        `).join("");
+        
+        // プレビューイベントバインド
+        container.querySelectorAll('.del-memo-item').forEach(item => {
+            const id = parseInt(item.dataset.id);
+            const memo = deletedMemos.find(m => m.id === id);
+            setupDeletedMemoEvents(item, memo.content);
+        });
+    }
+
     function restoreMemo(id) {
         const index = deletedMemos.findIndex(m => m.id === id);
         if (index !== -1) {
@@ -1117,13 +1381,38 @@
         }
     }
 
-    function updateDeletedUI() {
-        const container = document.getElementById('deleted-memos');
-        if (deletedMemos.length === 0) { container.innerHTML = '<div style="color:#555">削除履歴はありません</div>'; return; }
-        container.innerHTML = deletedMemos.map(memo => `
-            <div class="history-item"><button class="restore-btn" onclick="restoreMemo(${memo.id})">復元</button>
-            <div style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${memo.title || '無題'}</div></div>
-        `).join("");
+    function permanentlyDeleteMemo(id) {
+        const index = deletedMemos.findIndex(m => m.id === id);
+        if (index !== -1) {
+            deletedMemos.splice(index, 1);
+            saveDeletedStates(); updateDeletedUI();
+        }
+    }
+    
+    let previewTimer;
+    function setupDeletedMemoEvents(itemEl, content) {
+        itemEl.addEventListener('touchstart', (e) => {
+            if(e.target.tagName === 'BUTTON') return;
+            previewTimer = setTimeout(() => { showPreviewModal(content); if(navigator.vibrate) navigator.vibrate(30); }, 500);
+        }, {passive:true});
+        itemEl.addEventListener('touchend', () => clearTimeout(previewTimer));
+        itemEl.addEventListener('touchcancel', () => clearTimeout(previewTimer));
+        itemEl.addEventListener('touchmove', () => clearTimeout(previewTimer));
+        
+        // PC用
+        itemEl.addEventListener('mousedown', (e) => {
+            if(e.target.tagName === 'BUTTON') return;
+            previewTimer = setTimeout(() => showPreviewModal(content), 500);
+        });
+        itemEl.addEventListener('mouseup', () => clearTimeout(previewTimer));
+        itemEl.addEventListener('mouseleave', () => clearTimeout(previewTimer));
+    }
+
+    function showPreviewModal(content) {
+        let previewText = content.split('\n').slice(0, 10).join('\n');
+        if (content.length > previewText.length) previewText += "\n...";
+        document.getElementById('preview-modal-text').innerText = previewText;
+        document.getElementById('preview-modal').style.display = 'flex';
     }
 
     function saveDeletedStates() { localStorage.setItem('ultimate_memo_deleted_v2', JSON.stringify(deletedMemos)); }
@@ -1147,9 +1436,50 @@
 
     function togglePreviewFullscreen() { document.getElementById('preview-container').classList.toggle('fullscreen'); }
 
-    // ★ジャンプバグ対策用変数
-    let savedSelectionStart = 0;
-    let savedSelectionEnd = 0;
+    // ★ エディタの全画面トグル
+    function toggleEditorFullscreen() {
+        const mainEl = document.querySelector('.main');
+        const btn = document.getElementById('btn-fullscreen');
+        mainEl.classList.toggle('fullscreen-mode');
+        
+        if (mainEl.classList.contains('fullscreen-mode')) {
+            btn.innerText = "元に戻す";
+            btn.style.background = "var(--pr-accent)";
+            btn.style.color = "#fff";
+            btn.style.border = "none";
+        } else {
+            btn.innerText = "全画面";
+            btn.style.background = "";
+            btn.style.color = "";
+        }
+        
+        setTimeout(() => {
+            updateHighlight();
+            scrollToActiveMatch();
+        }, 100);
+    }
+    
+    // ★ 探すの全てコピー機能
+    function copyAllSearchMatches() {
+        const keyword = getInputValue('search-in');
+        const text = document.getElementById('editor').value;
+        if (!keyword) {
+            alert("検索キーワードを入力してください");
+            return;
+        }
+        
+        let matches = getMatches(text, keyword);
+        let validMatches = matches.filter(m => !excludedMatchKeys['search'].has(`${m.start}_${m.end}`));
+        
+        if (validMatches.length === 0) {
+            alert("コピーする対象が見つかりません");
+            return;
+        }
+        
+        let copyText = validMatches.map(m => m.text).join('\n');
+        copyToClipboard(copyText);
+        alert(`探した結果 ${validMatches.length} 件をコピーしました`);
+    }
 
     function setupEditorEnhancements() {
         const editor = document.getElementById('editor');
@@ -1158,38 +1488,14 @@
         editor.addEventListener('keydown', function(e) {
             if (e.key === 'Tab') {
                 e.preventDefault();
-                saveTypingState(); // Tab挿入前に手動で履歴を積む
+                saveTypingState(); 
                 const start = this.selectionStart, end = this.selectionEnd;
                 this.value = this.value.substring(0, start) + "    " + this.value.substring(end);
                 this.selectionStart = this.selectionEnd = start + 4;
                 onEditorInput();
             }
         });
-        
-        // ★ エディタのフォーカスが外れた際に位置を記憶
-        editor.addEventListener('blur', function() {
-            savedSelectionStart = this.selectionStart;
-            savedSelectionEnd = this.selectionEnd;
-        });
-
-        // ★ メインエリアクリック時にエディタへフォーカスを当て、必要ならカーソル位置を復元
-        const workspace = document.querySelector('.workspace');
-        workspace.addEventListener('click', function(e) {
-            if (document.activeElement !== editor) {
-                editor.focus();
-                // 内部処理によってキャレットが先頭にリセットされてしまった場合のみ、直前の位置に戻す
-                setTimeout(() => {
-                    if (editor.selectionStart === 0 && savedSelectionStart > 0) {
-                        editor.selectionStart = savedSelectionStart;
-                        editor.selectionEnd = savedSelectionEnd;
-                    }
-                }, 10);
-            }
-        });
     }
 </script>
 </body>
 </html>
-
-
-```
