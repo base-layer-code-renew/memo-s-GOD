@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!DOCTYPE html> //メモGOD
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
@@ -120,6 +120,21 @@
         .undo-redo-group { display: flex; gap: 5px; margin-bottom: 10px; }
         .btn-ctrl { flex: 1; padding: 8px; background: #444; color: #fff; font-size: 12px; }
         .btn-ctrl:disabled { opacity: 0.2; }
+
+        /* 補完ポップアップ用追加 */
+        .autocomplete-popup {
+            position: absolute; background: #2d2d2d; border: 1px solid #555;
+            border-radius: 4px; box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+            z-index: 1000; display: none; flex-direction: column;
+            max-height: 150px; overflow-y: auto; min-width: 120px;
+        }
+        .autocomplete-item { padding: 8px 12px; color: #ddd; font-size: 13px; cursor: pointer; font-family: 'Consolas', monospace; }
+        .autocomplete-item.selected, .autocomplete-item:hover { background: var(--accent); color: #000; }
+        
+        #caret-dummy {
+            position: absolute; top: 0; left: 0; visibility: hidden; white-space: pre-wrap; word-wrap: break-word;
+            font-family: 'Consolas', monospace; z-index: -1; padding: 15px; box-sizing: border-box; border: none;
+        }
 
         .history-area { 
             flex-shrink: 0; overflow-y: auto; background: #111; border-radius: 4px; 
@@ -264,11 +279,7 @@
 <div class="container">
     <div class="sidebar">
         <h2>TOOLS</h2>
-        <div class="undo-redo-group">
-            <button id="undo-btn" class="btn-ctrl" onclick="undo()">↩ 戻る</button>
-            <button id="redo-btn" class="btn-ctrl" onclick="redo()">↪ 進む</button>
-        </div>
-
+        
         <!-- 探す (SEARCH) -->
         <div class="section-title">探す (SEARCH)</div>
         <div id="search-container"></div>
@@ -345,7 +356,7 @@
             <button class="nav-btn" onclick="navIndex(1, 'replace-find')">▼</button>
         </div>
         <div id="replace-to-container"></div>
-        <button class="btn-exe rep-theme" onclick="runReplace()">置換 ＆ 記録</button>
+        <button class="btn-exe rep-theme" onclick="runReplace()">置換実行</button>
 
         <!-- 文字列消去 (DELETE) -->
         <div class="section-title">文字列消去 (DELETE)</div>
@@ -373,13 +384,17 @@
             <label><input type="checkbox" value="kata"> カタカナ</label>
             <label><input type="checkbox" value="space"> 空白</label>
         </div>
-        <button class="btn-exe del-theme" onclick="runDelete()">消去実行 ＆ 記録</button>
-
-        <div class="section-title">操作履歴</div>
-        <div id="history" class="history-area"><div style="color:#555">履歴はありません</div></div>
+        <button class="btn-exe del-theme" onclick="runDelete()">消去実行</button>
 
         <div class="section-title">削除済みメモ (長押しでプレビュー)</div>
         <div id="deleted-memos" class="history-area"><div style="color:#555">削除履歴はありません</div></div>
+
+        <!-- 補完機能 (AUTOCOMPLETE) -->
+        <div class="section-title">補完機能 (AUTOCOMPLETE)</div>
+        <div style="display: flex; gap: 5px; margin-bottom: 20px;">
+            <button id="btn-autocomplete-toggle" class="btn-ctrl" onclick="toggleAutocomplete()">補完: ON</button>
+            <button class="btn-ctrl" style="background:var(--delete-accent);" onclick="resetAutocompleteDict(this)">履歴リセット</button>
+        </div>
     </div>
 
     <div class="main">
@@ -391,11 +406,14 @@
         </div>
 
         <div class="workspace">
+            <div id="caret-dummy"></div>
             <div class="backdrop" id="backdrop">
                 <div class="highlights" id="highlights"></div>
             </div>
             <textarea id="editor" placeholder="ここにテキストを入力してください..." oninput="onEditorInput()"></textarea>
             
+            <div id="autocomplete-popup" class="autocomplete-popup"></div>
+
             <div id="preview-container">
                 <div class="preview-controls">
                     <button class="btn-secondary" onclick="togglePreviewFullscreen()">全画面切替</button>
@@ -412,7 +430,6 @@
                 <button class="fs-btn" onclick="changeFontSize(1)">A+</button>
             </div>
             <button class="btn-primary" onclick="download('text')">テキスト保存</button>
-            <button class="btn-secondary" onclick="download('memo')">履歴保存</button>
             <button class="rep-theme" style="padding: 8px 15px; font-size: 12px;" onclick="runHTML()">▶ 実行</button>
             
             <div class="char-counter-wrap">
@@ -879,31 +896,137 @@
         document.getElementById('char-count').innerText = text.length + '文字';
     }
 
-    // ★ Undo/Redo用のデバウンストラッキング（文字入力もしっかり記録）
-    let typingTimer;
-    let isTyping = false;
+    // ★ 補完機能の状態・辞書
+    let autocompleteEnabled = true;
+    let autocompleteDict = {}; 
+    const savedDict = localStorage.getItem('ultimate_memo_dict_v1');
+    if (savedDict) autocompleteDict = JSON.parse(savedDict);
+    
+    let currentWordStart = -1;
+    let currentWordText = "";
+    let selectedAutocompleteIndex = -1;
+
+    function toggleAutocomplete() {
+        autocompleteEnabled = !autocompleteEnabled;
+        const btn = document.getElementById('btn-autocomplete-toggle');
+        btn.innerText = autocompleteEnabled ? "補完: ON" : "補完: OFF";
+        btn.style.background = autocompleteEnabled ? "#444" : "#222";
+        if (!autocompleteEnabled) hideAutocomplete();
+    }
+    
+    function resetAutocompleteDict(btn) {
+        autocompleteDict = {};
+        localStorage.removeItem('ultimate_memo_dict_v1');
+        const oldText = btn.innerText;
+        btn.innerText = "リセット完了";
+        setTimeout(() => { btn.innerText = oldText; }, 1500);
+    }
+    
+    function learnWord(word) {
+        if (!word || word.length < 2) return;
+        if (!autocompleteDict[word]) autocompleteDict[word] = 0;
+        autocompleteDict[word]++;
+        localStorage.setItem('ultimate_memo_dict_v1', JSON.stringify(autocompleteDict));
+    }
 
     function onEditorInput() {
         const memo = memos.find(m => m.id === activeMemoId);
-        
-        if (!isTyping) {
-            isTyping = true;
-            if (memo.undoStack.length === 0 || memo.undoStack[memo.undoStack.length - 1].content !== memo.content) {
-                memo.undoStack.push({ content: memo.content, history: [...memo.history] });
-                memo.redoStack = [];
-                updateCtrlButtons();
-            }
-        }
         
         clearExcludes(); 
         autoSave();
         updateHighlight();
         updateCharCount();
         
-        clearTimeout(typingTimer);
-        typingTimer = setTimeout(() => {
-            isTyping = false;
-        }, 800);
+        if (autocompleteEnabled) handleAutocompleteInput();
+        else hideAutocomplete();
+    }
+
+    function handleAutocompleteInput() {
+        const editor = document.getElementById('editor');
+        const pos = editor.selectionStart;
+        const textBeforeCursor = editor.value.substring(0, pos);
+        const match = textBeforeCursor.match(/([a-zA-Z0-9_ぁ-んァ-ヶー一-龠]+)$/);
+        
+        if (match && match[0].length >= 1) {
+            currentWordText = match[0];
+            currentWordStart = pos - currentWordText.length;
+            showAutocompleteOptions(currentWordText);
+        } else {
+            hideAutocomplete();
+        }
+    }
+
+    function getCaretCoordinates() {
+        const editor = document.getElementById('editor');
+        const dummy = document.getElementById('caret-dummy');
+        const pos = editor.selectionStart;
+        
+        const style = window.getComputedStyle(editor);
+        dummy.style.fontSize = style.fontSize;
+        dummy.style.lineHeight = style.lineHeight;
+        dummy.style.fontFamily = style.fontFamily;
+        dummy.style.padding = style.padding;
+        dummy.style.width = style.width;
+        dummy.style.height = style.height;
+        
+        const textBefore = editor.value.substring(0, pos);
+        const textAfter = editor.value.substring(pos);
+        
+        dummy.textContent = textBefore;
+        const span = document.createElement('span');
+        span.textContent = textAfter.length > 0 ? textAfter[0] : '|';
+        dummy.appendChild(span);
+        
+        return {
+            top: span.offsetTop - editor.scrollTop,
+            left: span.offsetLeft - editor.scrollLeft
+        };
+    }
+
+    function showAutocompleteOptions(prefix) {
+        if (!prefix) { hideAutocomplete(); return; }
+        
+        let matches = Object.keys(autocompleteDict)
+            .filter(w => w !== prefix && w.startsWith(prefix))
+            .sort((a, b) => autocompleteDict[b] - autocompleteDict[a])
+            .slice(0, 5); 
+            
+        if (matches.length === 0) { hideAutocomplete(); return; }
+        
+        const popup = document.getElementById('autocomplete-popup');
+        popup.innerHTML = matches.map((m, i) => `<div class="autocomplete-item ${i===0?'selected':''}" onmousedown="applyAutocomplete('${m}')">${m}</div>`).join('');
+        selectedAutocompleteIndex = 0;
+        
+        const coords = getCaretCoordinates();
+        popup.style.display = 'flex';
+        popup.style.top = (coords.top + parseFloat(window.getComputedStyle(document.getElementById('editor')).lineHeight) + 15) + 'px';
+        popup.style.left = (coords.left + 15) + 'px'; 
+    }
+    
+    function hideAutocomplete() {
+        document.getElementById('autocomplete-popup').style.display = 'none';
+        selectedAutocompleteIndex = -1;
+    }
+    
+    function updateAutocompleteSelection() {
+        const items = document.querySelectorAll('.autocomplete-item');
+        items.forEach((item, idx) => {
+            if (idx === selectedAutocompleteIndex) item.classList.add('selected');
+            else item.classList.remove('selected');
+        });
+    }
+    
+    function applyAutocomplete(word) {
+        const editor = document.getElementById('editor');
+        const textBefore = editor.value.substring(0, currentWordStart);
+        const textAfter = editor.value.substring(editor.selectionStart);
+        
+        editor.value = textBefore + word + textAfter;
+        editor.selectionStart = editor.selectionEnd = currentWordStart + word.length;
+        
+        learnWord(word); 
+        hideAutocomplete();
+        onEditorInput();
     }
 
     // ==========================================
@@ -951,7 +1074,6 @@
         let validMatches = matches.filter(m => !excludedMatchKeys['replace-find'].has(`${m.start}_${m.end}`));
 
         if (validMatches.length > 0) {
-            saveState();
             // 後ろから置換してインデックス維持
             for (let i = validMatches.length - 1; i >= 0; i--) {
                 let m = validMatches[i];
@@ -959,7 +1081,7 @@
                 let finalReplaceVal = applyKeepReplace(replaceVal, m.tokens, m.groups);
                 content = content.substring(0, m.start) + finalReplaceVal + content.substring(m.end);
             }
-            applyChanges(content, `置換: 「${findVal}」→「${replaceVal}」`);
+            applyChanges(content);
             setInputValue('replace-find-in', "");
             setInputValue('replace-to-in', "");
         } else {
@@ -988,7 +1110,6 @@
         let idx1 = swapIndices[0];
         let idx2 = swapIndices[1];
         
-        saveState();
         let changeCount = 0;
         
         for (let i = validMatches.length - 1; i >= 0; i--) {
@@ -1008,11 +1129,9 @@
         }
         
         if (changeCount > 0) {
-            applyChanges(content, `PR: 部分交換 (${changeCount}件)`);
+            applyChanges(content);
             alert(`PR完了：${changeCount}件の指定箇所を入れ替えました。`);
         } else {
-            const memo = memos.find(m => m.id === activeMemoId);
-            memo.undoStack.pop();
             alert("PRエラー：交換によって文字列が変化しませんでした。");
         }
     }
@@ -1058,7 +1177,6 @@
             return null;
         }
         
-        saveState();
         let targetText = content.substring(cutStartPos, cutEndPos);
         return { content, cutStartPos, cutEndPos, targetText };
     }
@@ -1071,7 +1189,7 @@
         if (doCopy) copyToClipboard(res.targetText);
         
         let actionName = doCopy ? "CAC (切取＆コピー)" : "C (切取のみ)";
-        applyChanges(newContent, `${actionName}: ${res.targetText.length}文字`);
+        applyChanges(newContent);
         alert(`${actionName} 完了`);
     }
 
@@ -1082,7 +1200,7 @@
         let replaceStr = getInputValue('car-replace-in');
         let newContent = res.content.substring(0, res.cutStartPos) + replaceStr + res.content.substring(res.cutEndPos);
         
-        applyChanges(newContent, `CAR (切取＆置換): ${res.targetText.length}文字 -> ${replaceStr.length}文字`);
+        applyChanges(newContent);
         alert(`CAR完了：指定範囲を新しい文字に置き換えました。`);
     }
 
@@ -1124,7 +1242,7 @@
 
     function createNewMemo() {
         const id = Date.now();
-        const newMemo = { id: id, title: "新規メモ", content: "", fontSize: 16, history: [], undoStack: [], redoStack: [] };
+        const newMemo = { id: id, title: "新規メモ", content: "", fontSize: 16 };
         memos.push(newMemo); activeMemoId = id;
         renderTabs(); loadActiveMemo(); autoSave();
         
@@ -1141,7 +1259,6 @@
         document.getElementById('editor').value = memo.content;
         document.getElementById('memo-title').value = memo.title;
         applyFontSize(); // ★ フォントサイズ適用
-        updateHistoryUI(); updateCtrlButtons();
         updateCharCount();
         clearExcludes();
         if (document.getElementById('preview-container').style.display === 'flex') endTest();
@@ -1277,19 +1394,10 @@
         status.innerText = "保存中..."; setTimeout(() => { status.innerText = "保存済み"; }, 800);
     }
 
-    function saveState() {
-        const memo = memos.find(m => m.id === activeMemoId);
-        if (!memo) return;
-        memo.undoStack.push({ content: document.getElementById('editor').value, history: [...memo.history] });
-        memo.redoStack = []; updateCtrlButtons();
-        isTyping = false;
-    }
-
     function runDelete() {
         const memo = memos.find(m => m.id === activeMemoId);
         let content = document.getElementById('editor').value;
         let info = [];
-        saveState();
 
         ['del-1', 'del-2'].forEach(key => {
             const inId = HL_MAPPING[key].in;
@@ -1317,16 +1425,14 @@
             chk.checked = false;
         });
 
-        if (info.length > 0) applyChanges(content, `消去: ${info.join(", ")}`);
-        else { memo.undoStack.pop(); alert("対象が見つかりません"); }
+        if (info.length > 0) applyChanges(content);
+        else { alert("対象が見つかりません"); }
     }
 
     // ★ DOM更新時にカーソル位置を極力維持する
-    function applyChanges(newContent, message) {
+    function applyChanges(newContent) {
         const memo = memos.find(m => m.id === activeMemoId);
-        const time = new Date().toLocaleTimeString();
         memo.content = newContent;
-        memo.history.push(`[${time}] ${message}`);
         
         const editor = document.getElementById('editor');
         const oldStart = editor.selectionStart;
@@ -1336,41 +1442,7 @@
         editor.selectionStart = Math.min(oldStart, newContent.length);
         editor.selectionEnd = editor.selectionStart;
         
-        updateHistoryUI(); updateCtrlButtons(); onEditorInput();
-    }
-
-    function undo() {
-        const memo = memos.find(m => m.id === activeMemoId);
-        if (!memo || memo.undoStack.length === 0) return;
-        memo.redoStack.push({ content: document.getElementById('editor').value, history: [...memo.history] });
-        const last = memo.undoStack.pop();
-        memo.content = last.content; memo.history = last.history;
-        isTyping = false;
-        loadActiveMemo(); autoSave();
-    }
-
-    function redo() {
-        const memo = memos.find(m => m.id === activeMemoId);
-        if (!memo || memo.redoStack.length === 0) return;
-        memo.undoStack.push({ content: document.getElementById('editor').value, history: [...memo.history] });
-        const next = memo.redoStack.pop();
-        memo.content = next.content; memo.history = next.history;
-        isTyping = false;
-        loadActiveMemo(); autoSave();
-    }
-
-    function updateHistoryUI() {
-        const memo = memos.find(m => m.id === activeMemoId);
-        const histDiv = document.getElementById('history');
-        if (!memo || !memo.history.length) { histDiv.innerHTML = '<div style="color:#555">履歴はありません</div>'; return; }
-        histDiv.innerHTML = memo.history.map(log => `<div class="history-item">${log}</div>`).reverse().join("");
-    }
-
-    function updateCtrlButtons() {
-        const memo = memos.find(m => m.id === activeMemoId);
-        if (!memo) return;
-        document.getElementById('undo-btn').disabled = memo.undoStack.length === 0;
-        document.getElementById('redo-btn').disabled = memo.redoStack.length === 0;
+        onEditorInput();
     }
 
     function loadFile(e) {
@@ -1378,7 +1450,6 @@
         if (!file) return;
         const reader = new FileReader();
         reader.onload = (ev) => {
-            saveState(); 
             const editor = document.getElementById('editor');
             editor.value = ev.target.result;
             editor.selectionStart = editor.selectionEnd = 0; 
@@ -1389,8 +1460,8 @@
 
     function download(type) {
         const memo = memos.find(m => m.id === activeMemoId);
-        let content = type === 'text' ? memo.content : "■ 履歴\n" + memo.history.join("\n");
-        let name = type === 'text' ? `${memo.title}.txt` : "history.txt";
+        let content = memo.content;
+        let name = `${memo.title}.txt`;
         const blob = new Blob([content], { type: 'text/plain' });
         const a = document.createElement('a');
         a.href = URL.createObjectURL(blob); a.download = name; a.click();
@@ -1533,13 +1604,48 @@
         editor.addEventListener('touchstart', function(e) { this.focus(); }, {passive: true});
         
         editor.addEventListener('keydown', function(e) {
-            if (e.key === 'Tab') {
-                e.preventDefault();
-                saveTypingState(); 
-                const start = this.selectionStart, end = this.selectionEnd;
-                this.value = this.value.substring(0, start) + "    " + this.value.substring(end);
-                this.selectionStart = this.selectionEnd = start + 4;
-                onEditorInput();
+            if (autocompleteEnabled && document.getElementById('autocomplete-popup').style.display === 'flex') {
+                const items = document.querySelectorAll('.autocomplete-item');
+                if (e.key === 'ArrowDown') {
+                    e.preventDefault();
+                    selectedAutocompleteIndex = (selectedAutocompleteIndex + 1) % items.length;
+                    updateAutocompleteSelection();
+                    return;
+                } else if (e.key === 'ArrowUp') {
+                    e.preventDefault();
+                    selectedAutocompleteIndex = (selectedAutocompleteIndex - 1 + items.length) % items.length;
+                    updateAutocompleteSelection();
+                    return;
+                } else if (e.key === 'Enter' || e.key === 'Tab') {
+                    e.preventDefault();
+                    if (selectedAutocompleteIndex >= 0 && selectedAutocompleteIndex < items.length) {
+                        applyAutocomplete(items[selectedAutocompleteIndex].innerText);
+                    } else if (items.length > 0) {
+                        applyAutocomplete(items[0].innerText); 
+                    }
+                    return;
+                } else if (e.key === 'Escape') {
+                    hideAutocomplete();
+                    return;
+                }
+            } else {
+                if (e.key === 'Tab') {
+                    e.preventDefault();
+                    const start = this.selectionStart, end = this.selectionEnd;
+                    this.value = this.value.substring(0, start) + "    " + this.value.substring(end);
+                    this.selectionStart = this.selectionEnd = start + 4;
+                    onEditorInput();
+                    return;
+                }
+            }
+            
+            if (autocompleteEnabled && (e.key === ' ' || e.key === 'Enter')) {
+                const pos = this.selectionStart;
+                const textBeforeCursor = this.value.substring(0, pos);
+                const match = textBeforeCursor.match(/([a-zA-Z0-9_ぁ-んァ-ヶー一-龠]+)$/);
+                if (match && match[0].length >= 2) {
+                    learnWord(match[0]);
+                }
             }
         });
         
@@ -1657,10 +1763,9 @@
         // アクション: 削除
         document.getElementById('ctx-del-func').addEventListener('click', function() {
             if (currentFuncData) {
-                saveState();
                 let currentVal = editor.value;
                 let newVal = currentVal.substring(0, currentFuncData.start) + currentVal.substring(currentFuncData.end);
-                applyChanges(newVal, "関数ブロックを削除");
+                applyChanges(newVal);
             }
             ctxMenu.style.display = 'none';
         });
@@ -1680,16 +1785,6 @@
             }
             ctxMenu.style.display = 'none';
         });
-        
-        // Typing state helper for tab key
-        function saveTypingState() {
-            const memo = memos.find(m => m.id === activeMemoId);
-            if (memo.undoStack.length === 0 || memo.undoStack[memo.undoStack.length - 1].content !== memo.content) {
-                memo.undoStack.push({ content: memo.content, history: [...memo.history] });
-                memo.redoStack = [];
-                updateCtrlButtons();
-            }
-        }
     }
 </script>
 </body>
